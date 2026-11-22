@@ -6,6 +6,7 @@ import {
   codigoSeguimientoSchema,
   decisionSchema,
   cambioEstadoDenunciaSchema,
+  consultaSolicitudSchema,
   denunciaSchema,
   registroComercianteSchema,
 } from "./validation";
@@ -130,4 +131,25 @@ export async function cambiarEstadoDenuncia(repo: Repositorio, codigo: unknown, 
   const d = await repo.actualizarEstadoDenuncia(cod.data, actual.estado, parsed.data.estado);
   if (!d) throw new ErrorDominio("La denuncia cambió mientras la editabas; recarga la bandeja", 409);
   return { codigo: d.codigo, estado: d.estado, actualizadoEn: d.actualizadoEn };
+}
+
+/**
+ * MORD-33: el comerciante consulta su solicitud con RUC + DNI (no recibe correos).
+ * Si el RUC no existe o el DNI no coincide se responde el mismo 404 genérico,
+ * para no revelar qué RUC están registrados. No devuelve correo, teléfono ni DNI.
+ */
+export async function consultarSolicitud(repo: Repositorio, input: unknown) {
+  const parsed = consultaSolicitudSchema.safeParse(input);
+  if (!parsed.success) throw new ErrorDominio(primerError(parsed.error), 422);
+  const c = await repo.buscarComerciantePorRuc(parsed.data.ruc);
+  if (!c || c.dni !== parsed.data.dni) throw new ErrorDominio("No encontramos una solicitud con ese RUC y DNI. Revisa los números.", 404);
+  return {
+    razonSocial: c.razonSocial,
+    giro: c.giro,
+    estado: c.estado,
+    motivoRechazo: c.motivoRechazo ?? null,
+    puestoId: c.puestoId ?? null,
+    codigoLicencia: c.codigoLicencia ?? null,
+    creadoEn: c.creadoEn,
+  };
 }

@@ -216,3 +216,39 @@ dl.datos dd{margin:0;font-weight:600}
 footer.pie{border-top:1px solid var(--borde);background:var(--papel-2)}
 footer.pie .in{max-width:1120px;margin:auto;padding:28px 24px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--gris)}
 footer.pie b{color:var(--tinta);font-family:var(--serif);font-size:16px}
+
+/* ---------- MORD-33 · Guía para el ciudadano (accesible) ---------- */
+body{font-size:17px}
+button.grande,.btn.grande{padding:15px 24px;font-size:17px}
+.guia{background:var(--blanco);border:2px solid var(--verde);border-radius:20px;padding:28px;margin-top:24px;text-align:left}
+.guia h2{font-size:26px;margin-bottom:16px;color:var(--verde-3)}
+.guia ol{list-style:none;padding:0;margin:0;display:grid;gap:16px}
+.guia li{display:flex;gap:16px;align-items:flex-start;font-size:18px;line-height:1.5}
+.guia .num{flex:none;width:40px;height:40px;border-radius:50%;background:var(--verde);color:#fff;display:grid;place-items:center;font-weight:800;font-size:19px}
+.guia b{color:var(--tinta)}
+.recibo{background:var(--blanco);border:1px solid var(--borde);border-radius:22px;padding:36px;box-shadow:var(--sombra);max-width:760px;margin:auto}
+.recibo .check{width:72px;height:72px;border-radius:50%;background:var(--verde-2);color:var(--verde);display:grid;place-items:center;margin-bottom:16px}
+.recibo h1{font-size:clamp(30px,4vw,40px)}
+.recibo .lead{font-size:19px;color:var(--tinta-2);margin:10px 0 0}
+.datos-recibo{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:24px 0 0}
+.datos-recibo div{background:var(--papel);border:1px dashed var(--borde-2);border-radius:14px;padding:14px 16px}
+.datos-recibo span{display:block;font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--gris);font-weight:700}
+.datos-recibo b{font-family:var(--mono);font-size:19px}
+.estado-grande{border-radius:20px;padding:26px;margin-top:22px}
+.estado-grande h2{font-size:28px}
+.estado-grande p{font-size:18px;margin:10px 0 0}
+.estado-grande.Pendiente{background:var(--mango-2);border:1px solid #f3d9a8}
+.estado-grande.Aprobado{background:var(--verde-2);border:1px solid #bcd9c3}
+.estado-grande.Rechazado{background:var(--tomate-2);border:1px solid #f2c3b7}
+.atajos{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:28px}
+@media (max-width:700px){.atajos{grid-template-columns:1fr}}
+.atajos a{display:flex;gap:16px;align-items:center;background:var(--blanco);border:1px solid var(--borde);border-radius:18px;padding:22px;text-decoration:none;color:var(--tinta);box-shadow:var(--sombra);transition:transform .12s}
+.atajos a:hover{transform:translateY(-2px)}
+.atajos .ico{flex:none;width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:var(--verde-2);color:var(--verde)}
+.atajos b{display:block;font-family:var(--serif);font-size:20px}
+.atajos span{color:var(--gris);font-size:15px}
+@media print{
+  .franja,header.top,footer.pie,.no-imprimir,.acciones,nav{display:none!important}
+  body{background:#fff;font-size:13pt}
+  .recibo,.boleto,.guia{box-shadow:none;border:1px solid #999}
+}
