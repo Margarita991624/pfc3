@@ -57,3 +57,14 @@ describe("MORD-34 · Reenvío según el estado actual", () => {
     expect(correoSegunEstado({ ...base, estado: "Rechazado", motivoRechazo: "x" }, URL_BASE).asunto).toMatch(/no fue aprobada/);
   });
 });
+
+describe("MORD-34/36 · El reenvío respeta el estado de la licencia", () => {
+  it("una licencia en revisión, suspendida o revocada reenvía el aviso de licencia y no el de puesto", async () => {
+    const { correoSegunEstado } = await import("@/lib/correos");
+    const aprobado = { ...base, estado: "Aprobado" as const, codigoLicencia: "LIC-1", puestoId: "B-201" };
+    expect(correoSegunEstado({ ...aprobado, licenciaEstado: "En revisión", licenciaMotivo: "Reporte de balanza" }, URL_BASE).asunto).toMatch(/en revisión/);
+    expect(correoSegunEstado({ ...aprobado, licenciaEstado: "Suspendida" }, URL_BASE).asunto).toMatch(/suspendida/);
+    expect(correoSegunEstado({ ...aprobado, puestoId: null, licenciaEstado: "Revocada" }, URL_BASE).asunto).toMatch(/revocada/);
+    expect(correoSegunEstado({ ...aprobado, licenciaEstado: "Vigente" }, URL_BASE).asunto).toContain("B-201");
+  });
+});
