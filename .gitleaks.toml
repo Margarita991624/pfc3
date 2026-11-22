@@ -1,0 +1,21 @@
+# Configuración de Gitleaks: reglas por defecto + reglas propias del proyecto.
+title = "MercaOrden"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "supabase-secret-key"
+description = "Clave secreta de Supabase (sb_secret_…)"
+regex = '''sb_secret_[A-Za-z0-9_-]{20,}'''
+keywords = ["sb_secret_"]
+
+[[rules]]
+id = "supabase-service-role-jwt"
+description = "JWT service_role de Supabase"
+regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]*c2VydmljZV9yb2xl[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+'''
+keywords = ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9"]
+
+[allowlist]
+description = "Valores de prueba explícitos (no son secretos reales)"
+regexes = ['''ci-solo-pruebas-no-usar-en-produccion''', '''e2e-solo-pruebas-no-usar-en-produccion''', '''test-secret-de-al-menos-32-caracteres''']
