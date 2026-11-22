@@ -10,7 +10,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ codigo: 
     const { codigo } = await params;
     const datos = await verificarLicencia(obtenerRepositorio(), codigo);
     const url = new URL(`/licencia/${datos.codigoLicencia}`, req.url).toString();
-    const qr = await QRCode.toDataURL(url, { margin: 1, width: 220 });
+    // MORD-37: QR en alta resolución (sirve para imprimir y descargar); en pantalla se muestra a 220 px.
+    const qr = await QRCode.toDataURL(url, { margin: 2, width: 720, errorCorrectionLevel: "M" });
     return NextResponse.json({ ...datos, qr });
   } catch (e) {
     return manejarError(e);
