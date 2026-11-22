@@ -1,0 +1,49 @@
+digraph G {
+  rankdir=TB; bgcolor="white"; fontname="DejaVu Sans"; pad=0.3; nodesep=0.35; ranksep=0.7;
+  node [fontname="DejaVu Sans", fontsize=11, shape=box, style="rounded,filled", fillcolor="#ffffff", color="#9aa5a0", penwidth=1.3];
+  edge [fontname="DejaVu Sans", fontsize=9, color="#5d6b63"];
+  label=<<b>Arquitectura lógica · MercaOrden</b>>; labelloc=t; fontsize=16;
+
+  subgraph cluster_users { label="Usuarios"; style="rounded,dashed"; color="#c9d2cc"; fontsize=11;
+    com [label="Comerciante\nmayorista", shape=ellipse, fillcolor="#e8f3ec"];
+    den [label="Denunciante\n(anónimo)", shape=ellipse, fillcolor="#e8f3ec"];
+    adm [label="Administrador\ndel mercado", shape=ellipse, fillcolor="#e8f3ec"];
+    ins [label="Inspector\n(escanea QR)", shape=ellipse, fillcolor="#e8f3ec"];
+  }
+
+  subgraph cluster_vercel { label="Vercel (Edge Network + Serverless, HTTPS/TLS)"; style="rounded,filled"; fillcolor="#f4f6fa"; color="#2f5d8a"; fontsize=11;
+    cdn [label="CDN + WAF de Vercel\ncabeceras de seguridad\n(CSP, HSTS, X-Frame-Options)", fillcolor="#dfe8f2"];
+    subgraph cluster_front { label="Capa de presentación · Next.js 16 (React 19)"; style="rounded"; color="#2f5d8a";
+      ui1 [label="/comerciantes/registro\n(HU01)"]; ui2 [label="/admin\n(HU02, HU03)"]; ui3 [label="/licencia/[codigo]\n(HU04 · QR)"];
+      ui4 [label="/denuncias/nueva\n(HU15)"]; ui5 [label="/denuncias/seguimiento\n(HU17)"];
+    }
+    subgraph cluster_api { label="Capa de API · Route Handlers (Node.js)"; style="rounded"; color="#2f5d8a";
+      api [label="/api/comerciantes · /api/puestos\n/api/licencias · /api/denuncias\n/api/admin/login · /api/health", fillcolor="#fff7e6"];
+      auth [label="Autenticación admin\ncookie httpOnly + HMAC-SHA256\nSameSite=Strict, 8 h", fillcolor="#fdecea"];
+    }
+    subgraph cluster_dom { label="Capa de dominio (lib/)"; style="rounded"; color="#2f5d8a";
+      val [label="Validación Zod\nRUC módulo 11 SUNAT\nlista blanca de campos", fillcolor="#fff7e6"];
+      svc [label="Servicios\nregistrar · decidir · asignar\nverificarLicencia · denunciar", fillcolor="#fff7e6"];
+      repo [label="Puerto Repositorio\n(Supabase | Memoria para tests)", fillcolor="#fff7e6"];
+    }
+    env [label="Variables de entorno cifradas\nSUPABASE_SERVICE_ROLE_KEY\nADMIN_PASSWORD · SESSION_SECRET", shape=note, fillcolor="#fdecea"];
+  }
+
+  subgraph cluster_supa { label="Supabase (PostgreSQL 17, São Paulo)"; style="rounded,filled"; fillcolor="#eef7f1"; color="#1f6f43"; fontsize=11;
+    db [label="PostgreSQL\ncomerciantes · puestos · denuncias\nRLS activado (anon sin acceso)\nconstraints: RUC único, motivo de rechazo", shape=cylinder, fillcolor="#d5ecdd"];
+  }
+  subgraph cluster_ext { label="Servicios externos"; style="rounded,dashed"; color="#c9d2cc"; fontsize=11;
+    gh [label="GitHub\n(repositorio + Actions)", fillcolor="#f1f1f1"];
+    jira [label="Jira MORD\n(GitHub for Atlassian)", fillcolor="#f1f1f1"];
+    qr [label="Librería qrcode\n(QR en el servidor)", fillcolor="#f1f1f1"];
+  }
+
+  com -> cdn; den -> cdn; adm -> cdn; ins -> cdn;
+  cdn -> ui1; cdn -> ui2; cdn -> ui3; cdn -> ui4; cdn -> ui5;
+  {ui1 ui2 ui3 ui4 ui5} -> api [label="fetch JSON\n(HTTPS)", style=dashed];
+  api -> auth [label="rutas admin"]; api -> val; val -> svc; svc -> repo; api -> qr [style=dotted];
+  repo -> db [label="supabase-js\nREST/HTTPS\nservice_role (solo servidor)", color="#1f6f43", penwidth=1.6];
+  env -> api [style=dotted, arrowhead=none];
+  gh -> cdn [label="deploy automático\nal hacer merge en main", style=dashed, color="#2f5d8a"];
+  gh -> jira [label="commits/PR con MORD-n", style=dashed];
+}
