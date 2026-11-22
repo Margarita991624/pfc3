@@ -1,8 +1,16 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import type { Comerciante, Puesto } from "@/lib/types";
-import { Alerta, Candado, Check, Qr } from "../iconos";
+import type { Comerciante, Denuncia, EstadoDenuncia, Puesto } from "@/lib/types";
+import { Alerta, Candado, Check, Megafono, Qr, Tienda } from "../iconos";
+
+// HU16: acciones permitidas según el estado actual (el backend vuelve a validar el flujo).
+const ACCIONES: Record<EstadoDenuncia, { estado: EstadoDenuncia; texto: string; clase?: string }[]> = {
+  Recibida: [{ estado: "En revisión", texto: "Iniciar revisión" }],
+  "En revisión": [{ estado: "Derivada", texto: "Derivar a PNP / Fiscalía", clase: "peligro" }, { estado: "Cerrada", texto: "Cerrar", clase: "sec" }],
+  Derivada: [{ estado: "Cerrada", texto: "Cerrar caso", clase: "sec" }],
+  Cerrada: [],
+};
 
 const iniciales = (t: string) => t.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
 
@@ -11,6 +19,8 @@ export default function Admin() {
   const [lista, setLista] = useState<Comerciante[]>([]);
   const [puestos, setPuestos] = useState<Puesto[]>([]);
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
+  const [denuncias, setDenuncias] = useState<Denuncia[]>([]);
+  const [vista, setVista] = useState<"comerciantes" | "denuncias">("comerciantes");
 
   const cargar = useCallback(async () => {
     const r = await fetch("/api/comerciantes");
@@ -19,6 +29,8 @@ export default function Admin() {
     setLista(await r.json());
     const p = await fetch("/api/puestos");
     if (p.ok) setPuestos(await p.json());
+    const d = await fetch("/api/denuncias");
+    if (d.ok) setDenuncias(await d.json());
   }, []);
 
   // Carga inicial de datos desde la API (sincronización con un sistema externo).
@@ -61,29 +73,83 @@ export default function Admin() {
       </form>
     );
 
+  async function moverDenuncia(codigo: string, estado: EstadoDenuncia) {
+    await accion(`/api/denuncias/${encodeURIComponent(codigo)}/estado`, { estado }, `Denuncia ${codigo}: ${estado}`);
+  }
+
   const libres = puestos.filter((p) => !p.comercianteId);
   const pendientes = lista.filter((c) => c.estado === "Pendiente").length;
   const aprobados = lista.filter((c) => c.estado === "Aprobado").length;
   const rechazados = lista.filter((c) => c.estado === "Rechazado").length;
+  const cuenta = (e: EstadoDenuncia) => denuncias.filter((d) => d.estado === e).length;
+  const porAtender = cuenta("Recibida") + cuenta("En revisión");
 
   return (
     <div className="aparece">
       <div className="barra">
         <div>
-          <span className="ceja">Panel municipal <span className="chip">HU02 · HU03 · HU04</span></span>
-          <h1>Solicitudes de comerciantes</h1>
+          <span className="ceja">Panel municipal <span className="chip">{vista === "comerciantes" ? "HU02 · HU03 · HU04" : "HU16"}</span></span>
+          <h1>{vista === "comerciantes" ? "Solicitudes de comerciantes" : "Bandeja de denuncias"}</h1>
         </div>
         <button className="sec" onClick={() => fetch("/api/admin/logout", { method: "POST" }).then(() => setAutenticado(false))}>Cerrar sesión</button>
       </div>
 
+      <div className="pestanas" role="tablist" aria-label="Secciones del panel">
+        <button role="tab" aria-selected={vista === "comerciantes"} className={vista === "comerciantes" ? "activa" : ""} onClick={() => { setVista("comerciantes"); setMsg(null); }}>
+          <Tienda /> Comerciantes <span className="cuenta">{pendientes}</span>
+        </button>
+        <button role="tab" aria-selected={vista === "denuncias"} className={vista === "denuncias" ? "activa" : ""} onClick={() => { setVista("denuncias"); setMsg(null); }}>
+          <Megafono /> Denuncias <span className="cuenta">{porAtender}</span>
+        </button>
+      </div>
+
+      {msg && <div className={msg.ok ? "ok" : "err"} role="status" style={{ marginBottom: 18 }}>{msg.ok ? <Check /> : <Alerta />}<span>{msg.texto}</span></div>}
+
+      {vista === "denuncias" ? (
+        <>
+          <div className="kpis">
+            <div className="kpi"><span>Total</span><b>{denuncias.length}</b></div>
+            <div className="kpi m"><span>Nuevas</span><b>{cuenta("Recibida")}</b></div>
+            <div className="kpi t"><span>Derivadas</span><b>{cuenta("Derivada")}</b></div>
+            <div className="kpi v"><span>Cerradas</span><b>{cuenta("Cerrada")}</b><small className="aviso">{cuenta("En revisión")} en revisión</small></div>
+          </div>
+          <div className="card" style={{ padding: 0, overflowX: "auto" }}>
+            <table>
+              <thead><tr><th>Código</th><th>Categoría</th><th>Ubicación y relato</th><th>Estado</th><th>Acciones</th></tr></thead>
+              <tbody>
+                {denuncias.length === 0 && <tr><td colSpan={5} className="vacio">No hay denuncias registradas.</td></tr>}
+                {denuncias.map((d) => (
+                  <tr key={d.codigo}>
+                    <td><span className="mono"><b>{d.codigo}</b></span><br /><span className="aviso">{new Date(d.creadoEn).toLocaleString("es-PE")}</span></td>
+                    <td>{d.categoria}</td>
+                    <td style={{ maxWidth: 360 }}>
+                      <b>{d.ubicacion}</b>
+                      <details className="relato"><summary>Ver relato</summary><p>{d.descripcion}</p></details>
+                    </td>
+                    <td><span className={`tag ${d.estado.replace(/\s/g, "")}`}>{d.estado}</span></td>
+                    <td>
+                      <div className="ops">
+                        {ACCIONES[d.estado].map((a) => (
+                          <button key={a.estado} className={`chico ${a.clase ?? ""}`} onClick={() => moverDenuncia(d.codigo, a.estado)}>{a.texto}</button>
+                        ))}
+                        {d.estado === "Cerrada" && <span className="aviso">Caso cerrado</span>}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="aviso" style={{ marginTop: 14 }}>La bandeja no muestra datos del denunciante porque el sistema nunca los guarda (sin nombre, DNI, IP ni dispositivo).</p>
+        </>
+      ) : (
+      <>
       <div className="kpis">
         <div className="kpi"><span>Solicitudes</span><b>{lista.length}</b></div>
         <div className="kpi m"><span>Por revisar</span><b>{pendientes}</b></div>
         <div className="kpi v"><span>Formalizados</span><b>{aprobados}</b></div>
         <div className="kpi t"><span>Puestos libres</span><b>{libres.length}</b><small className="aviso">{rechazados} rechazadas</small></div>
       </div>
-
-      {msg && <div className={msg.ok ? "ok" : "err"} role="status" style={{ marginBottom: 18 }}>{msg.ok ? <Check /> : <Alerta />}<span>{msg.texto}</span></div>}
 
       <div className="card" style={{ padding: 0, overflowX: "auto" }}>
         <table>
@@ -124,6 +190,8 @@ export default function Admin() {
           </tbody>
         </table>
       </div>
+      </>
+      )}
     </div>
   );
 }

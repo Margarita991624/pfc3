@@ -35,4 +35,8 @@ export const denunciaSchema = z.object({
 });
 export type NuevaDenuncia = z.infer<typeof denunciaSchema>;
 
+export const cambioEstadoDenunciaSchema = z.object({
+  estado: z.enum(["En revisión", "Derivada", "Cerrada"], { message: "Estado no válido" }),
+});
+
 export const codigoSeguimientoSchema = z.string().trim().toUpperCase().regex(/^DEN-[A-Z0-9]{4}-[A-Z0-9]{4}$/, "Formato DEN-XXXX-XXXX");

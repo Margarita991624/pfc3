@@ -63,6 +63,30 @@ test.describe("@smoke MercaOrden", () => {
     await expect(page.getByText("Recibida")).toBeVisible();
   });
 
+  test("HU16 · MORD-25: admin revisa y deriva una denuncia y el denunciante ve el avance", async ({ page, request }) => {
+    const r = await request.post("/api/denuncias", {
+      data: { categoria: "Extorsión", ubicacion: "Bloque D, puerta 1", descripcion: "Amenazan a los comerciantes que no pagan la cuota semanal." },
+    });
+    expect(r.status()).toBe(201);
+    const { codigo } = await r.json();
+    expect((await request.get("/api/denuncias")).status()).toBe(401);
+
+    await page.goto("/admin");
+    await page.getByLabel("Contraseña").fill("e2e-admin-pruebas");
+    await page.getByRole("button", { name: "Ingresar" }).click();
+    await page.getByRole("tab", { name: /Denuncias/ }).click();
+    const fila = () => page.getByRole("row", { name: new RegExp(codigo) });
+    await fila().getByRole("button", { name: "Iniciar revisión" }).click();
+    await expect(page.getByText(`Denuncia ${codigo}: En revisión`)).toBeVisible();
+    await fila().getByRole("button", { name: "Derivar a PNP / Fiscalía" }).click();
+    await expect(page.getByText(`Denuncia ${codigo}: Derivada`)).toBeVisible();
+
+    await page.goto("/denuncias/seguimiento");
+    await page.getByLabel("Código").fill(codigo);
+    await page.getByRole("button", { name: "Consultar" }).click();
+    await expect(page.getByText("Estado: Derivada")).toBeVisible();
+  });
+
   test("seguridad · /admin protegido y cabeceras de seguridad presentes", async ({ request }) => {
     expect((await request.get("/api/comerciantes")).status()).toBe(401);
     const res = await request.get("/");
