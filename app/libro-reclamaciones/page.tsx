@@ -76,7 +76,6 @@ export default function LibroReclamaciones() {
           </div>
           <div className="grid">
             <div style={{ gridColumn: "1 / -1" }}><label htmlFor="descripcionBien">Descripción del producto o servicio</label><input id="descripcionBien" name="descripcionBien" placeholder="Ej.: atención de mi solicitud de licencia" required /></div>
-            <div><label htmlFor="monto">Monto reclamado en S/ (opcional)</label><input id="monto" name="monto" inputMode="decimal" placeholder="0.00" /></div>
           </div>
         </fieldset>
 
