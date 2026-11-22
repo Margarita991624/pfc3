@@ -9,6 +9,8 @@ Plataforma web para la Municipalidad de Lima y el Mercado Mayorista de Santa Ani
 | E1 · Registro y formalización de comerciantes | HU01 registro con DNI/RUC · HU02 aprobar/rechazar · HU03 asignar puesto · HU04 licencia con QR | MORD-4 |
 | E5 · Canal de denuncias anónimas | HU15 denuncia anónima · HU17 seguimiento por código | MORD-8 |
 
+**Producción:** https://pfc3-ruddy.vercel.app · **Jira:** https://margarita-pfc3.atlassian.net/jira/software/projects/MORD/boards/1/backlog
+
 ## Stack
 - **Frontend + API:** Next.js 16 (App Router, TypeScript) desplegado en **Vercel**
 - **Base de datos:** Supabase (PostgreSQL) con Row Level Security

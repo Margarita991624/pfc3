@@ -101,11 +101,11 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: produccion
-      url: ${{ vars.PROD_URL }}
+      url: ${{ vars.PROD_URL || 'https://pfc3-ruddy.vercel.app' }}
     steps:
       - name: Esperar despliegue de Vercel y verificar /api/health
         env:
-          PROD_URL: ${{ vars.PROD_URL }}
+          PROD_URL: ${{ vars.PROD_URL || 'https://pfc3-ruddy.vercel.app' }}
         run: |
           if [ -z "$PROD_URL" ]; then echo "::warning::Defina la variable PROD_URL del repositorio"; exit 0; fi
           for i in $(seq 1 20); do
@@ -116,7 +116,7 @@ jobs:
           echo "::error::La aplicación no respondió en $PROD_URL"; exit 1
       - name: Verificar cabeceras de seguridad
         env:
-          PROD_URL: ${{ vars.PROD_URL }}
+          PROD_URL: ${{ vars.PROD_URL || 'https://pfc3-ruddy.vercel.app' }}
         run: |
           [ -z "$PROD_URL" ] && exit 0
           h=$(curl -sI "$PROD_URL/")
