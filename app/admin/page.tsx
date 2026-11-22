@@ -65,7 +65,7 @@ export default function Admin() {
         <div className="candado"><Candado size={26} /></div>
         <span className="ceja">Acceso restringido</span>
         <h1>Administración</h1>
-        <p className="aviso" style={{ marginTop: 8 }}>Sesión firmada (HMAC) en cookie httpOnly. Solo personal municipal autorizado.</p>
+        <p className="aviso" style={{ marginTop: 8 }}>Solo personal autorizado de la administración del mercado.</p>
         <label htmlFor="password">Contraseña</label>
         <input id="password" name="password" type="password" autoComplete="current-password" required />
         <div className="acciones"><button style={{ width: "100%" }}>Ingresar</button></div>
@@ -88,7 +88,7 @@ export default function Admin() {
     <div className="aparece">
       <div className="barra">
         <div>
-          <span className="ceja">Panel municipal <span className="chip">{vista === "comerciantes" ? "HU02 · HU03 · HU04" : "HU16"}</span></span>
+          <span className="ceja">Panel municipal</span>
           <h1>{vista === "comerciantes" ? "Solicitudes de comerciantes" : "Bandeja de denuncias"}</h1>
         </div>
         <button className="sec" onClick={() => fetch("/api/admin/logout", { method: "POST" }).then(() => setAutenticado(false))}>Cerrar sesión</button>
@@ -140,7 +140,7 @@ export default function Admin() {
               </tbody>
             </table>
           </div>
-          <p className="aviso" style={{ marginTop: 14 }}>La bandeja no muestra datos del denunciante porque el sistema nunca los guarda (sin nombre, DNI, IP ni dispositivo).</p>
+          <p className="aviso" style={{ marginTop: 14 }}>Las denuncias son anónimas: no se muestra quién las hizo porque nunca se pide esa información.</p>
         </>
       ) : (
       <>

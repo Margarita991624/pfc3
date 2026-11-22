@@ -47,9 +47,9 @@ export default function RegistroComerciante() {
           </div>
           <Guia
             pasos={[
-              <><b>No necesitas hacer nada más por ahora.</b> No te enviaremos correos ni mensajes: tú mismo consultas cómo va tu trámite.</>,
+              <><b>No necesitas hacer nada más por ahora.</b> Te enviaremos un <b>correo</b> cuando tu solicitud sea revisada. Si no lo ves, revisa también la carpeta de <b>spam</b> o «correo no deseado».</>,
               <><b>Guarda este comprobante.</b> Imprímelo o tómale una foto con tu celular. Lo importante es recordar tu <b>RUC</b> y tu <b>DNI</b>.</>,
-              <><b>En unos días, entra a «Mi solicitud»</b> (en el menú de arriba) y escribe tu RUC y tu DNI para ver si ya fue aprobada.</>,
+              <><b>Si no te llega el correo</b>, entra a «Mi solicitud» (en el menú de arriba) y escribe tu RUC y tu DNI para ver si ya fue aprobada.</>,
               <><b>Cuando esté aprobada</b> verás tu número de puesto y tu licencia con código QR. Imprímela o muéstrala desde tu celular.</>,
               <><b>¿Tienes dudas o no sabes usar la página?</b> Acércate a la oficina de administración del mercado con tu DNI y este comprobante.</>,
             ]}
@@ -66,7 +66,7 @@ export default function RegistroComerciante() {
   return (
     <div className="aparece">
       <div className="cabecera">
-        <span className="ceja">Formalización <span className="chip">HU01</span></span>
+        <span className="ceja">Formalización</span>
         <h1>Registro de comerciante mayorista</h1>
         <p className="sub">Tu solicitud queda en estado «Pendiente» hasta que la administración la apruebe. Te tomará menos de dos minutos.</p>
       </div>
@@ -102,7 +102,7 @@ export default function RegistroComerciante() {
         <aside className="lado">
           <h3>¿Qué obtienes?</h3>
           <ul className="lista">
-            <li><span className="ico"><Check /></span><span><b>Validación inmediata</b><br />Comprobamos el dígito verificador de tu RUC según SUNAT.</span></li>
+            <li><span className="ico"><Check /></span><span><b>Validación inmediata</b><br />Te avisamos al instante si tu RUC o tu DNI tienen algún error.</span></li>
             <li><span className="ico"><Tienda /></span><span><b>Puesto asignado</b><br />La administración te asigna un puesto libre según tu giro.</span></li>
             <li><span className="ico"><Qr /></span><span><b>Licencia digital con QR</b><br />Verificable por cualquier inspector o cliente.</span></li>
             <li><span className="ico"><Escudo /></span><span><b>Datos protegidos</b><br />Tu documento y tu correo nunca aparecen en la licencia pública.</span></li>

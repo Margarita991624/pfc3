@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
-import type { Comerciante, Denuncia, EstadoDenuncia, EstadoSolicitud, Puesto, Repositorio } from "./types";
+import type { Comerciante, Denuncia, Reclamo, EstadoDenuncia, EstadoSolicitud, Puesto, Repositorio } from "./types";
 
 /** Repositorio en memoria: usado por las pruebas automatizadas y por el modo demo sin base de datos. */
 export class RepositorioMemoria implements Repositorio {
   comerciantes: Comerciante[] = [];
   denuncias: Denuncia[] = [];
+  reclamos: Reclamo[] = [];
   puestos: Puesto[];
 
   constructor(puestos?: Puesto[]) {
@@ -47,6 +48,11 @@ export class RepositorioMemoria implements Repositorio {
     return nueva;
   }
   async buscarDenunciaPorCodigo(codigo: string) { return this.denuncias.find((d) => d.codigo === codigo) ?? null; }
+  async crearReclamo(r: Omit<Reclamo, "id" | "creadoEn">) {
+    const nuevo = { ...r, id: randomUUID(), creadoEn: new Date().toISOString() };
+    this.reclamos.push(nuevo);
+    return nuevo;
+  }
   async listarDenuncias() { return [...this.denuncias].sort((a, b) => b.creadoEn.localeCompare(a.creadoEn)); }
   async actualizarEstadoDenuncia(codigo: string, anterior: EstadoDenuncia, nuevo: EstadoDenuncia) {
     const d = this.denuncias.find((x) => x.codigo === codigo && x.estado === anterior);

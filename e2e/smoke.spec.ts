@@ -105,6 +105,24 @@ test.describe("@smoke MercaOrden", () => {
     await expect(page.getByText("Estado: Derivada")).toBeVisible();
   });
 
+  test("MORD-35: libro de reclamaciones registra la hoja y el pie muestra contacto y términos", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.getByRole("link", { name: "cristel.narvaez@usil.pe" }).first()).toHaveAttribute("href", /^mailto:cristel\.narvaez@usil\.pe/);
+    await expect(page.getByRole("link", { name: "Términos y condiciones" })).toBeVisible();
+    await page.getByRole("contentinfo").getByRole("link", { name: "Libro de Reclamaciones" }).click();
+    await page.getByLabel("Nombre completo").fill("Juana Pérez Ramos");
+    await page.getByLabel("DNI o carné de extranjería").fill("45678912");
+    await page.getByLabel("Domicilio").fill("Av. Las Flores 123, Lima");
+    await page.getByLabel("Correo electrónico (aquí te responderemos)").fill("juana@example.com");
+    await page.getByLabel("Descripción del producto o servicio").fill("Atención de mi solicitud");
+    await page.getByLabel("¿Qué pasó?").fill("Registré mi solicitud hace tres semanas y sigue sin respuesta.");
+    await page.getByLabel("¿Qué solución pides?").fill("Que revisen mi solicitud.");
+    await page.getByRole("checkbox").check();
+    await page.getByRole("button", { name: "Enviar hoja de reclamación" }).click();
+    await expect(page.getByRole("heading", { name: "Registramos tu hoja de reclamación" })).toBeVisible();
+    await expect(page.locator(".codigo")).toHaveText(/^REC-\d{4}-[A-Z2-9]{6}$/);
+  });
+
   test("seguridad · /admin protegido y cabeceras de seguridad presentes", async ({ request }) => {
     expect((await request.get("/api/comerciantes")).status()).toBe(401);
     const res = await request.get("/");

@@ -37,6 +37,25 @@ export interface Denuncia {
   actualizadoEn: string;
 }
 
+/** MORD-35: hoja del Libro de Reclamaciones (Ley 29571 y su reglamento). */
+export interface Reclamo {
+  id: string;
+  codigo: string;
+  tipo: "Reclamo" | "Queja";
+  nombres: string;
+  documento: string;
+  domicilio: string;
+  email: string;
+  telefono: string | null;
+  apoderado: string | null;
+  bienTipo: "Producto" | "Servicio";
+  monto: number | null;
+  descripcionBien: string;
+  detalle: string;
+  pedido: string;
+  creadoEn: string;
+}
+
 /** Puerto de persistencia: Supabase en producción, memoria en las pruebas. */
 export interface Repositorio {
   buscarComerciantePorRuc(ruc: string): Promise<Comerciante | null>;
@@ -51,5 +70,6 @@ export interface Repositorio {
   crearDenuncia(d: Omit<Denuncia, "id" | "creadoEn" | "actualizadoEn">): Promise<Denuncia>;
   buscarDenunciaPorCodigo(codigo: string): Promise<Denuncia | null>;
   listarDenuncias(): Promise<Denuncia[]>;
+  crearReclamo(r: Omit<Reclamo, "id" | "creadoEn">): Promise<Reclamo>;
   actualizarEstadoDenuncia(codigo: string, anterior: EstadoDenuncia, nuevo: EstadoDenuncia): Promise<Denuncia | null>;
 }

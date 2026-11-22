@@ -45,4 +45,22 @@ export const cambioEstadoDenunciaSchema = z.object({
   estado: z.enum(["En revisión", "Derivada", "Cerrada"], { message: "Estado no válido" }),
 });
 
+/** MORD-35: hoja del Libro de Reclamaciones virtual. */
+const opcional = (max: number) => z.string().trim().max(max).optional().transform((v) => (v ? v : null));
+export const reclamoSchema = z.object({
+  tipo: z.enum(["Reclamo", "Queja"], { message: "Elige si es un reclamo o una queja" }),
+  nombres: z.string().trim().min(3, "Escribe tu nombre completo").max(120),
+  documento: z.string().trim().regex(/^[A-Za-z0-9]{8,12}$/, "Escribe tu DNI o carné de extranjería (8 a 12 caracteres)"),
+  domicilio: z.string().trim().min(5, "Escribe tu domicilio").max(200),
+  email: z.string().trim().email("Correo inválido"),
+  telefono: opcional(15),
+  apoderado: opcional(120),
+  bienTipo: z.enum(["Producto", "Servicio"], { message: "Elige producto o servicio" }),
+  monto: z.union([z.literal(""), z.coerce.number().min(0).max(1_000_000)]).optional().transform((v) => (v === "" || v === undefined ? null : v)),
+  descripcionBien: z.string().trim().min(3, "Describe el producto o servicio").max(300),
+  detalle: z.string().trim().min(10, "Cuéntanos qué pasó (al menos 10 caracteres)").max(3000),
+  pedido: z.string().trim().min(5, "Indica qué solución pides").max(1500),
+  acepta: z.literal(true, { message: "Debes aceptar los términos para continuar" }),
+});
+
 export const codigoSeguimientoSchema = z.string().trim().toUpperCase().regex(/^DEN-[A-Z0-9]{4}-[A-Z0-9]{4}$/, "Formato DEN-XXXX-XXXX");

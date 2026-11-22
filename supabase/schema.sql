@@ -58,3 +58,26 @@ on conflict (id) do nothing;
 grant usage on schema public to service_role;
 grant select, insert, update, delete on public.comerciantes, public.puestos, public.denuncias to service_role;
 revoke all on public.comerciantes, public.puestos, public.denuncias from anon, authenticated;
+
+-- MORD-35: Libro de Reclamaciones virtual (Ley 29571, D.S. 011-2011-PCM y modificatorias).
+create table if not exists public.reclamos (
+  id uuid primary key default gen_random_uuid(),
+  codigo text not null unique,
+  tipo text not null check (tipo in ('Reclamo','Queja')),
+  nombres text not null,
+  documento text not null,
+  domicilio text not null,
+  email text not null,
+  telefono text,
+  apoderado text,
+  bien_tipo text not null check (bien_tipo in ('Producto','Servicio')),
+  monto numeric(12,2),
+  descripcion_bien text not null,
+  detalle text not null,
+  pedido text not null,
+  estado text not null default 'Recibido',
+  creado_en timestamptz not null default now()
+);
+alter table public.reclamos enable row level security;
+grant select, insert, update, delete on public.reclamos to service_role;
+revoke all on public.reclamos from anon, authenticated;
