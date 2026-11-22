@@ -65,9 +65,17 @@ export class RepositorioMemoria implements Repositorio {
     if (r) r.estado = "Atendido";
   }
   async crearReclamo(r: Omit<Reclamo, "id" | "creadoEn">) {
-    const nuevo = { ...r, id: randomUUID(), creadoEn: new Date().toISOString() };
+    const nuevo: Reclamo = { ...r, id: randomUUID(), creadoEn: new Date().toISOString(), estado: "Recibido", respuesta: null, respondidoEn: null };
     this.reclamos.push(nuevo);
     return nuevo;
+  }
+  async listarReclamos() { return [...this.reclamos].sort((a, b) => b.creadoEn.localeCompare(a.creadoEn)); }
+  async buscarReclamo(id: string) { return this.reclamos.find((r) => r.id === id) ?? null; }
+  async responderReclamo(id: string, respuesta: string) {
+    const r = this.reclamos.find((x) => x.id === id && x.estado !== "Respondido");
+    if (!r) return null;
+    Object.assign(r, { estado: "Respondido", respuesta, respondidoEn: new Date().toISOString() });
+    return r;
   }
   async listarDenuncias() { return [...this.denuncias].sort((a, b) => b.creadoEn.localeCompare(a.creadoEn)); }
   async actualizarEstadoDenuncia(codigo: string, anterior: EstadoDenuncia, nuevo: EstadoDenuncia) {
