@@ -65,6 +65,9 @@ test.describe("@smoke MercaOrden", () => {
     await page.getByRole("row", { name: /Papas Pedro E2E/ }).getByRole("link", { name: /Ver licencia/ }).click();
     await expect(page.getByText("VIGENTE · comerciante formalizado")).toBeVisible();
     await expect(page.getByAltText("Código QR de la licencia")).toBeVisible();
+    // MORD-37: el QR se puede descargar como imagen PNG
+    const [descarga] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Descargar QR" }).click()]);
+    expect(descarga.suggestedFilename()).toMatch(/^licencia-LIC-[A-Z0-9]{6}-QR\.png$/);
   });
 
   test("HU15/HU17 · denuncia anónima entrega código y se puede consultar", async ({ page }) => {
