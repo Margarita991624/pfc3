@@ -1,0 +1,97 @@
+name: Post-deploy · verificación y DAST
+
+# Se dispara cuando Vercel informa un despliegue exitoso (integración Git).
+# Producción: smoke test + cabeceras + control de acceso + OWASP ZAP baseline (pasivo).
+on:
+  deployment_status:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: URL a verificar
+        default: https://pfc3-ruddy.vercel.app
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    name: Smoke test, cabeceras y DAST (ZAP)
+    if: github.event_name == 'workflow_dispatch' || (github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      # Siempre se usa el código confiable de la rama por defecto, nunca el del despliegue.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Validar la URL objetivo (solo dominios del proyecto en Vercel)
+        env:
+          TARGET: ${{ github.event.deployment_status.environment_url || inputs.url || 'https://pfc3-ruddy.vercel.app' }}
+        run: |
+          [[ "$TARGET" =~ ^https://pfc3-[a-z0-9-]+\.vercel\.app/?$ ]] || { echo "::error::URL no permitida: $TARGET"; exit 1; }
+          echo "TARGET=${TARGET%/}" >> "$GITHUB_ENV"
+
+      - name: Smoke test (/api/health conectado a Supabase)
+        run: |
+          code=000
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /tmp/h.json -w '%{http_code}' "$TARGET/api/health" || true)
+            if [ "$code" = "200" ]; then cat /tmp/h.json; echo; break; fi
+            echo "Intento $i: HTTP $code"; sleep 15
+          done
+          [ "$code" = "200" ] || { echo "::error::La aplicación no respondió en $TARGET"; exit 1; }
+          grep -q '"baseDatos":"supabase"' /tmp/h.json || { echo "::error::Producción no está conectada a Supabase"; exit 1; }
+
+      - name: Verificar cabeceras de seguridad
+        run: |
+          h=$(curl -sI "$TARGET/")
+          for k in content-security-policy strict-transport-security x-frame-options x-content-type-options referrer-policy permissions-policy; do
+            echo "$h" | grep -qi "^$k:" && echo "OK $k" || { echo "::error::Falta la cabecera $k"; exit 1; }
+          done
+          if echo "$h" | grep -qi '^x-powered-by:'; then echo "::error::Se expone X-Powered-By"; exit 1; fi
+
+      - name: Verificar control de acceso de la API de administración
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' "$TARGET/api/comerciantes")
+          [ "$code" = "401" ] || { echo "::error::/api/comerciantes debería responder 401 sin sesión (respondió $code)"; exit 1; }
+          echo "OK: /api/comerciantes protegido (401)"
+
+      - name: OWASP ZAP baseline (escaneo pasivo)
+        run: |
+          mkdir -p zap-report && chmod 777 zap-report
+          set +e
+          docker run --rm -v "$PWD/zap-report:/zap/wrk:rw" ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t "$TARGET" -m 1 -J report.json -r report.html -I
+          echo $? > zap-report/exit-code.txt
+          set -e
+          test -f zap-report/report.json
+
+      - name: Evaluar hallazgos de ZAP (falla con riesgo alto)
+        run: |
+          python3 - <<'PY'
+          import json, os
+          r = json.load(open('zap-report/report.json'))
+          alertas = [a for s in r.get('site', []) for a in s.get('alerts', [])]
+          altos = [a for a in alertas if int(a.get('riskcode', 0)) >= 3]
+          medios = [a for a in alertas if int(a.get('riskcode', 0)) == 2]
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+              f.write(f"## DAST · OWASP ZAP baseline\n\nObjetivo: {os.environ['TARGET']}\n\n")
+              f.write(f"| Riesgo | Alertas |\n|---|---|\n| Alto | {len(altos)} |\n| Medio | {len(medios)} |\n| Total | {len(alertas)} |\n\n")
+              for a in alertas:
+                  f.write(f"- [{a.get('riskdesc')}] {a.get('name')}\n")
+          for a in altos:
+              print(f"::error::ZAP alto: {a.get('name')}")
+          raise SystemExit(1 if altos else 0)
+          PY
+
+      - name: Conservar reporte de ZAP
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: zap-produccion-${{ github.run_id }}
+          path: zap-report/
+          retention-days: 30
