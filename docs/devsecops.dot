@@ -1,0 +1,20 @@
+digraph D {
+  rankdir=TB; newrank=true; fontname="DejaVu Sans"; pad=0.3; nodesep=0.25; ranksep=0.35;
+  node [fontname="DejaVu Sans", fontsize=10, shape=box, style="rounded,filled", color="#9aa5a0"];
+  edge [color="#5d6b63", arrowsize=.7];
+  label=<<b>Ciclo DevSecOps de MercaOrden · herramientas y control de seguridad por fase</b>>; labelloc=t; fontsize=15;
+  plan [label=<<b>PLAN</b><br/>Jira MORD (Scrum)<br/><font color="#b3261e">HU de seguridad (HU15)<br/>criterios de abuso</font>>, fillcolor="#e8f3ec"];
+  code [label=<<b>CODE</b><br/>VS Code · Git · TypeScript<br/><font color="#b3261e">ESLint · tipos estrictos<br/>.env fuera del repo</font>>, fillcolor="#e8f3ec"];
+  build [label=<<b>BUILD</b><br/>GitHub Actions · npm ci<br/>next build<br/><font color="#b3261e">lockfile reproducible</font>>, fillcolor="#dfe8f2"];
+  test [label=<<b>TEST</b><br/>Vitest (24 pruebas)<br/>cobertura v8<br/><font color="#b3261e">SAST CodeQL · Gitleaks<br/>npm audit (SCA)</font>>, fillcolor="#dfe8f2"];
+  release [label=<<b>RELEASE</b><br/>PR test → main<br/>checks obligatorios<br/><font color="#b3261e">revisión de código<br/>alertas de Code Scanning</font>>, fillcolor="#fff7e6"];
+  deploy [label=<<b>DEPLOY</b><br/>Vercel (Git integration)<br/><font color="#b3261e">secretos cifrados en Vercel<br/>HTTPS + cabeceras CSP/HSTS</font>>, fillcolor="#fff7e6"];
+  operate [label=<<b>OPERATE</b><br/>Vercel serverless · Supabase<br/><font color="#b3261e">RLS · service_role solo backend<br/>cookie HMAC httpOnly</font>>, fillcolor="#f3e9f7"];
+  monitor [label=<<b>MONITOR</b><br/>/api/health + smoke test<br/>Vercel logs · Dependabot<br/><font color="#b3261e">alertas de seguridad<br/>en GitHub</font>>, fillcolor="#f3e9f7"];
+  {rank=same; plan; code; build; test;}
+  {rank=same; release; deploy; operate; monitor;}
+  plan -> code -> build -> test;
+  test -> release;
+  release -> deploy -> operate -> monitor;
+  monitor -> plan [style=dashed, constraint=false, xlabel="retroalimentación", fontsize=9];
+}
