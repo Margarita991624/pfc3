@@ -148,6 +148,8 @@ export function correosReclamo(r: import("./types").Reclamo, contacto: string): 
 /** MORD-34: elige el aviso que corresponde al estado actual (para reenviarlo desde el panel). */
 export function correoSegunEstado(c: Comerciante, urlBase: string): Correo {
   if (c.estado === "Pendiente") return correoSolicitudRecibida(c, urlBase);
+  // MORD-36: si la licencia no está vigente (en revisión, suspendida o revocada), ese es el aviso que manda.
+  if (c.estado === "Aprobado" && (c.licenciaEstado ?? "Vigente") !== "Vigente") return correoLicencia(c, urlBase);
   if (c.estado === "Aprobado" && c.puestoId) return correoPuestoAsignado(c, urlBase);
   return correoDecision(c, urlBase);
 }
