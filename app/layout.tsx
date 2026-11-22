@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Logo } from "./iconos";
+import { Libro, Logo, Sobre } from "./iconos";
+import { CONTACTO_EMAIL } from "@/lib/contacto";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,8 +32,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <main>{children}</main>
         <footer className="pie">
           <div className="in">
-            <span><b>MercaOrden</b> · Proyecto Final de Carrera III · USIL 2026-2</span>
-            <span>Emergencias: 105 (PNP) · Datos protegidos con RLS, HTTPS y CSP estricta</span>
+            <div>
+              <b>MercaOrden</b>
+              <p className="aviso" style={{ margin: "6px 0 0", maxWidth: 340 }}>Plataforma del Mercado Mayorista para formalizar comerciantes y denunciar cobros de cupos de forma anónima.</p>
+            </div>
+            <div className="pie-col">
+              <span className="pie-tit">Centro de contacto</span>
+              <a href={`mailto:${CONTACTO_EMAIL}?subject=${encodeURIComponent("Consulta MercaOrden")}`}><Sobre size={16} /> {CONTACTO_EMAIL}</a>
+              <span className="aviso">Atención solo por correo.</span>
+            </div>
+            <div className="pie-col">
+              <span className="pie-tit">Información</span>
+              <Link href="/terminos">Términos y condiciones</Link>
+              <Link href="/libro-reclamaciones" className="libro"><Libro size={18} /> Libro de Reclamaciones</Link>
+            </div>
           </div>
         </footer>
       </body>

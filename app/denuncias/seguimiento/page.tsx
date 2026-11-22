@@ -38,7 +38,7 @@ export default function Seguimiento() {
   return (
     <div className="aparece" style={{ maxWidth: 760, margin: "auto" }}>
       <div className="cabecera" style={{ textAlign: "center" }}>
-        <span className="ceja">Seguimiento <span className="chip">HU17</span></span>
+        <span className="ceja">Seguimiento</span>
         <h1>Seguimiento de denuncia</h1>
         <p className="sub" style={{ marginInline: "auto" }}>Escribe el código que te dimos al denunciar (empieza con DEN). Solo tú lo conoces.</p>
       </div>

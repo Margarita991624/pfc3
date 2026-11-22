@@ -63,14 +63,14 @@ export default function NuevaDenuncia() {
   return (
     <div className="aparece">
       <div className="cabecera">
-        <span className="ceja">Canal anónimo <span className="chip">HU15</span></span>
+        <span className="ceja">Canal anónimo</span>
         <h1>Denuncia anónima</h1>
         <p className="sub">No pedimos nombre, DNI ni teléfono. No se guarda tu dirección IP.</p>
       </div>
 
       <div className="dos">
         <form className="card" onSubmit={enviar}>
-          <div className="privacidad"><Ojo size={22} /><span>Estás en modo anónimo: este formulario no envía cookies ni datos de tu dispositivo.</span></div>
+          <div className="privacidad"><Ojo size={22} /><span>Estás en modo anónimo: no te pedimos tu nombre, tu DNI ni tu teléfono.</span></div>
           <label htmlFor="categoria">¿Qué ocurrió?</label>
           <select id="categoria" name="categoria">{CATEGORIAS_DENUNCIA.map((c) => <option key={c}>{c}</option>)}</select>
           <label htmlFor="ubicacion">Ubicación (bloque, puerta o zona)</label>
@@ -88,9 +88,9 @@ export default function NuevaDenuncia() {
         <aside className="lado">
           <h3>Cómo protegemos tu identidad</h3>
           <ul className="lista">
-            <li><span className="ico"><Ojo /></span><span><b>Sin rastro técnico</b><br />No almacenamos IP, navegador ni ubicación.</span></li>
-            <li><span className="ico"><Candado /></span><span><b>Acceso restringido</b><br />La base de datos solo responde al servidor con políticas RLS.</span></li>
-            <li><span className="ico"><Lupa /></span><span><b>Código aleatorio</b><br />Generado con criptografía segura: imposible de adivinar.</span></li>
+            <li><span className="ico"><Ojo /></span><span><b>Sin datos personales</b><br />No guardamos nada que pueda identificarte.</span></li>
+            <li><span className="ico"><Candado /></span><span><b>Solo personal autorizado</b><br />Únicamente la administración del mercado puede leer tu denuncia.</span></li>
+            <li><span className="ico"><Lupa /></span><span><b>Código único</b><br />Nadie más puede adivinarlo; solo tú sabrás cómo va tu caso.</span></li>
           </ul>
         </aside>
       </div>

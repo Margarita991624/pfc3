@@ -1,5 +1,5 @@
 import { ErrorDominio } from "./errors";
-import { generarCodigoLicencia, generarCodigoSeguimiento } from "./tracking";
+import { generarCodigoLicencia, generarCodigoReclamo, generarCodigoSeguimiento } from "./tracking";
 import type { Comerciante, Denuncia, EstadoDenuncia, Repositorio } from "./types";
 import {
   asignacionPuestoSchema,
@@ -7,6 +7,7 @@ import {
   decisionSchema,
   cambioEstadoDenunciaSchema,
   consultaSolicitudSchema,
+  reclamoSchema,
   denunciaSchema,
   registroComercianteSchema,
 } from "./validation";
@@ -152,4 +153,12 @@ export async function consultarSolicitud(repo: Repositorio, input: unknown) {
     codigoLicencia: c.codigoLicencia ?? null,
     creadoEn: c.creadoEn,
   };
+}
+
+/** MORD-35: registra una hoja del Libro de Reclamaciones con número correlativo único. */
+export async function registrarReclamo(repo: Repositorio, input: unknown) {
+  const parsed = reclamoSchema.safeParse(input);
+  if (!parsed.success) throw new ErrorDominio(primerError(parsed.error), 422);
+  const { acepta: _acepta, ...datos } = parsed.data; // eslint-disable-line @typescript-eslint/no-unused-vars
+  return repo.crearReclamo({ ...datos, codigo: generarCodigoReclamo() });
 }

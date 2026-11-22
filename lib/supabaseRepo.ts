@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Comerciante, Denuncia, EstadoDenuncia, EstadoSolicitud, Puesto, Repositorio } from "./types";
+import type { Comerciante, Denuncia, Reclamo, EstadoDenuncia, EstadoSolicitud, Puesto, Repositorio } from "./types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const aComerciante = (r: any): Comerciante => ({
@@ -89,7 +89,17 @@ export class RepositorioSupabase implements Repositorio {
   async buscarDenunciaPorCodigo(codigo: string) {
     const d = check(await this.db.from("denuncias").select("*").eq("codigo", codigo).maybeSingle());
     return d ? aDenuncia(d) : null;
-  }  async listarDenuncias() {
+  }  async crearReclamo(r: Omit<Reclamo, "id" | "creadoEn">) {
+    // Mapeo explícito (lista blanca) camelCase → columnas.
+    const fila = {
+      codigo: r.codigo, tipo: r.tipo, nombres: r.nombres, documento: r.documento, domicilio: r.domicilio,
+      email: r.email, telefono: r.telefono, apoderado: r.apoderado, bien_tipo: r.bienTipo, monto: r.monto,
+      descripcion_bien: r.descripcionBien, detalle: r.detalle, pedido: r.pedido,
+    };
+    const d = check(await this.db.from("reclamos").insert(fila).select("id, creado_en").single());
+    return { ...r, id: d!.id, creadoEn: d!.creado_en };
+  }
+  async listarDenuncias() {
     const filas = check(await this.db.from("denuncias").select("*").order("creado_en", { ascending: false }).limit(500));
     return (filas ?? []).map(aDenuncia);
   }

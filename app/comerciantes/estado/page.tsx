@@ -41,7 +41,7 @@ export default function MiSolicitud() {
       <div className="cabecera no-imprimir" style={{ textAlign: "center" }}>
         <span className="ceja">Para comerciantes</span>
         <h1>Mi solicitud</h1>
-        <p className="sub" style={{ marginInline: "auto" }}>Escribe el RUC y el DNI que usaste al registrarte. No necesitas correo, contraseña ni código.</p>
+        <p className="sub" style={{ marginInline: "auto" }}>Escribe el RUC y el DNI que usaste al registrarte. No necesitas contraseña ni código.</p>
       </div>
 
       <form className="card no-imprimir" onSubmit={consultar}>
@@ -71,7 +71,7 @@ export default function MiSolicitud() {
               </div>
               <Guia pasos={[
                 <><b>No tienes que hacer nada ahora.</b> Tu solicitud ya está registrada.</>,
-                <><b>Vuelve a consultar en unos días</b> con tu RUC y tu DNI en esta misma página.</>,
+                <><b>Te avisaremos por correo</b> cuando haya una respuesta (revisa también la carpeta de spam). Si no te llega, vuelve a consultar aquí en unos días.</>,
                 <><b>¿Pasó mucho tiempo?</b> Acércate a la oficina de administración del mercado con tu DNI.</>,
               ]} />
             </>
@@ -85,7 +85,7 @@ export default function MiSolicitud() {
               </div>
               <Guia pasos={[
                 <><b>Espera la asignación de tu puesto.</b> No tienes que llenar nada más.</>,
-                <><b>Vuelve a consultar en unos días.</b> Cuando tengas puesto, aquí aparecerá tu licencia con código QR.</>,
+                <><b>Te avisaremos por correo</b> cuando tengas puesto, con el enlace a tu licencia con QR. También aparecerá aquí.</>,
               ]} />
             </>
           )}
@@ -122,7 +122,7 @@ export default function MiSolicitud() {
         </div>
       )}
 
-      <p className="aviso no-imprimir" style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center", marginTop: 18 }}><Escudo size={16} /> Tus datos viajan cifrados y no se muestran tu correo ni tu teléfono.</p>
+      <p className="aviso no-imprimir" style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center", marginTop: 18 }}><Escudo size={16} /> Tus datos están protegidos: nunca mostramos tu correo ni tu teléfono.</p>
     </div>
   );
 }
