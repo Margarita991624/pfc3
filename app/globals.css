@@ -1,0 +1,15 @@
+:root{--verde:#1f6f43;--verde2:#e8f3ec;--tinta:#1d2420;--gris:#5d6b63;--borde:#d7e0da;--rojo:#b3261e;--fondo:#f7f9f8}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--tinta);background:var(--fondo)}
+header{background:var(--verde);color:#fff}header .in{max-width:960px;margin:auto;padding:14px 20px;display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+header a{color:#fff;text-decoration:none;font-size:14px;opacity:.9}header a:hover{opacity:1;text-decoration:underline}
+header .logo{font-weight:700;font-size:18px;margin-right:auto;opacity:1}
+main{max-width:960px;margin:auto;padding:28px 20px 60px}h1{font-size:26px;margin:0 0 6px}p.sub{color:var(--gris);margin:0 0 24px}
+.card{background:#fff;border:1px solid var(--borde);border-radius:10px;padding:20px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+label{display:block;font-size:13px;font-weight:600;margin:12px 0 4px}input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--borde);border-radius:6px;font:inherit;background:#fff}
+textarea{min-height:110px}button,.btn{display:inline-block;background:var(--verde);color:#fff;border:0;border-radius:6px;padding:10px 16px;font:inherit;font-weight:600;cursor:pointer;text-decoration:none}
+button.sec{background:#fff;color:var(--verde);border:1px solid var(--verde)}button.peligro{background:var(--rojo)}button:disabled{opacity:.5;cursor:default}
+.ok{background:var(--verde2);border:1px solid #b9dbc6;padding:12px;border-radius:6px;margin-top:14px}.err{background:#fdecea;border:1px solid #f3c1bc;color:var(--rojo);padding:12px;border-radius:6px;margin-top:14px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--borde);vertical-align:top}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:600;background:#eef1ef}.tag.Aprobado{background:var(--verde2);color:var(--verde)}.tag.Rechazado{background:#fdecea;color:var(--rojo)}
+.codigo{font-family:ui-monospace,monospace;font-size:22px;font-weight:700;letter-spacing:1px}.aviso{font-size:13px;color:var(--gris)}footer{text-align:center;color:var(--gris);font-size:12px;padding:20px}
