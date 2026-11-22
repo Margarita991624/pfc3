@@ -47,3 +47,13 @@ describe("MORD-34 · Textos alternativos de los correos", () => {
     expect(p.texto).toContain("Puesto");
   });
 });
+
+describe("MORD-34 · Reenvío según el estado actual", () => {
+  it("elige recibido, decisión o puesto según el estado del comerciante", async () => {
+    const { correoSegunEstado } = await import("@/lib/correos");
+    expect(correoSegunEstado(base, URL_BASE).asunto).toMatch(/Recibimos/);
+    expect(correoSegunEstado({ ...base, estado: "Aprobado", codigoLicencia: "LIC-1" }, URL_BASE).asunto).toMatch(/aprobada/);
+    expect(correoSegunEstado({ ...base, estado: "Aprobado", codigoLicencia: "LIC-1", puestoId: "B-201" }, URL_BASE).asunto).toContain("B-201");
+    expect(correoSegunEstado({ ...base, estado: "Rechazado", motivoRechazo: "x" }, URL_BASE).asunto).toMatch(/no fue aprobada/);
+  });
+});

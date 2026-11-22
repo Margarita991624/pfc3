@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { Comerciante, Denuncia, EstadoDenuncia, Puesto } from "@/lib/types";
-import { Alerta, Candado, Check, Megafono, Qr, Tienda } from "../iconos";
+import { Alerta, Candado, Check, Megafono, Qr, Sobre, Tienda } from "../iconos";
 
 // HU16: acciones permitidas según el estado actual (el backend vuelve a validar el flujo).
 const ACCIONES: Record<EstadoDenuncia, { estado: EstadoDenuncia; texto: string; clase?: string }[]> = {
@@ -182,6 +182,7 @@ export default function Admin() {
                       </select>
                     )}
                     {c.puestoId && <span className="tag Aprobado">Puesto {c.puestoId}</span>}
+                    <button className="chico sec" title="Reenviar al comerciante el aviso de su estado actual" onClick={() => accion(`/api/comerciantes/${c.id}/notificar`, {}, `Correo enviado a ${c.razonSocial}`)}><Sobre size={15} /> Reenviar correo</button>
                     {c.codigoLicencia && <Link href={`/licencia/${c.codigoLicencia}`} style={{ display: "inline-flex", gap: 6, alignItems: "center", fontWeight: 600 }}><Qr size={16} />Ver licencia {c.codigoLicencia}</Link>}
                   </div>
                 </td>
