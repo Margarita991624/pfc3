@@ -52,3 +52,9 @@ insert into public.puestos (id, bloque, numero, giro) values
   ('C-301','C',301,'Tubérculos'), ('C-302','C',302,'Tubérculos'),
   ('D-401','D',401,'Abarrotes')
 on conflict (id) do nothing;
+
+-- Permisos de la Data API: solo el backend (service_role). anon/authenticated sin acceso.
+-- (En proyectos nuevos de Supabase las tablas creadas por SQL no se exponen automáticamente.)
+grant usage on schema public to service_role;
+grant select, insert, update, delete on public.comerciantes, public.puestos, public.denuncias to service_role;
+revoke all on public.comerciantes, public.puestos, public.denuncias from anon, authenticated;
