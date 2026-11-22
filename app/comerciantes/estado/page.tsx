@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Alerta, Escudo, Lupa, Qr } from "../../iconos";
 import { BotonImprimir, Guia } from "../../guia";
+import { AccionesLicencia } from "../../accionesLicencia";
 
 type Resultado = {
   razonSocial: string;
@@ -22,6 +23,7 @@ export default function MiSolicitud() {
   const [res, setRes] = useState<Resultado | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [buscando, setBuscando] = useState(false);
+  const [qr, setQr] = useState<string | null>(null);
 
   async function consultar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -32,8 +34,14 @@ export default function MiSolicitud() {
     const r = await fetch("/api/comerciantes/consulta", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(datos), credentials: "omit" });
     const j = await r.json();
     setBuscando(false);
-    if (r.ok) setRes(j);
-    else setError(j.error);
+    if (r.ok) {
+      setRes(j);
+      setQr(null);
+      if (j.codigoLicencia && j.puestoId && (j.licenciaEstado ?? "Vigente") === "Vigente") {
+        const l = await fetch(`/api/licencias/${encodeURIComponent(j.codigoLicencia)}`);
+        if (l.ok) setQr((await l.json()).qr);
+      }
+    } else setError(j.error);
   }
 
   const paso = !res ? -1 : res.estado === "Pendiente" ? 1 : res.puestoId ? 3 : 2;
@@ -113,11 +121,19 @@ export default function MiSolicitud() {
                 <p>Tu puesto es el <b style={{ fontSize: 24 }}>{res.puestoId}</b>. Tu licencia es la <b className="mono">{res.codigoLicencia}</b>.</p>
               </div>
               <Guia pasos={[
-                <><b>Abre tu licencia</b> con el botón verde de abajo.</>,
+                <><b>Descarga tu código QR o imprime tu licencia</b> con los botones de abajo.</>,
                 <><b>Imprímela y colócala en un lugar visible de tu puesto</b>, o guárdala en tu celular.</>,
                 <><b>Si un inspector o cliente escanea el código QR</b>, verá que tu negocio es formal. Nunca verá tu DNI ni tu teléfono.</>,
               ]} />
-              {res.codigoLicencia && <div className="acciones"><Link className="btn grande" href={`/licencia/${res.codigoLicencia}`}><Qr /> Ver e imprimir mi licencia</Link></div>}
+              {qr && res.codigoLicencia && (
+                <div style={{ textAlign: "center", marginTop: 22 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={qr} alt={`Código QR de la licencia ${res.codigoLicencia}`} width={220} height={220} style={{ border: "1px solid var(--borde)", borderRadius: 14, padding: 8, background: "#fff" }} />
+                  <p className="mono" style={{ margin: "6px 0 0" }}>{res.codigoLicencia} · Puesto {res.puestoId}</p>
+                  <AccionesLicencia qr={qr} codigo={res.codigoLicencia} />
+                </div>
+              )}
+              {res.codigoLicencia && <div className="acciones no-imprimir" style={{ justifyContent: "center" }}><Link className="btn claro grande" href={`/licencia/${res.codigoLicencia}`}><Qr /> Ver mi licencia completa</Link></div>}
             </>
           )}
 
@@ -134,7 +150,7 @@ export default function MiSolicitud() {
             </>
           )}
 
-          <div className="acciones no-imprimir"><BotonImprimir texto="Imprimir esta página" /></div>
+          {!qr && <div className="acciones no-imprimir"><BotonImprimir texto="Imprimir esta página" /></div>}
         </div>
       )}
 

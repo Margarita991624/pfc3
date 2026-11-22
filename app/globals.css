@@ -266,4 +266,9 @@ button.grande,.btn.grande{padding:15px 24px;font-size:17px}
   .franja,header.top,footer.pie,.no-imprimir,.acciones,nav{display:none!important}
   body{background:#fff;font-size:13pt}
   .recibo,.boleto,.guia{box-shadow:none;border:1px solid #999}
+  main{padding:0!important}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .licencia{box-shadow:none;border:2px solid #10241a;break-inside:avoid;max-width:100%}
+  .licencia .izq img{width:6cm!important;height:6cm!important}
+  .aparece{animation:none!important}
 }
