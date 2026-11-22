@@ -1,6 +1,6 @@
 import { ErrorDominio } from "./errors";
-import { generarCodigoLicencia, generarCodigoReclamo, generarCodigoSeguimiento } from "./tracking";
-import type { Comerciante, Denuncia, EstadoDenuncia, Repositorio } from "./types";
+import { generarCodigoLicencia, generarCodigoReclamo, generarCodigoReporte, generarCodigoSeguimiento } from "./tracking";
+import type { Comerciante, Denuncia, EstadoDenuncia, EstadoLicencia, Repositorio } from "./types";
 import {
   asignacionPuestoSchema,
   codigoSeguimientoSchema,
@@ -8,6 +8,8 @@ import {
   cambioEstadoDenunciaSchema,
   consultaSolicitudSchema,
   reclamoSchema,
+  cambioLicenciaSchema,
+  reporteSchema,
   denunciaSchema,
   registroComercianteSchema,
 } from "./validation";
@@ -74,7 +76,8 @@ export async function verificarLicencia(repo: Repositorio, codigo: string) {
     ruc: c.ruc,
     giro: c.giro,
     puesto: puesto ? `Bloque ${puesto.bloque} - N.º ${puesto.numero}` : "Sin puesto asignado",
-    vigente: c.estado === "Aprobado",
+    vigente: c.estado === "Aprobado" && (c.licenciaEstado ?? "Vigente") === "Vigente",
+    estadoLicencia: c.licenciaEstado ?? "Vigente",
     codigoLicencia: c.codigoLicencia,
   };
 }
@@ -151,6 +154,8 @@ export async function consultarSolicitud(repo: Repositorio, input: unknown) {
     motivoRechazo: c.motivoRechazo ?? null,
     puestoId: c.puestoId ?? null,
     codigoLicencia: c.codigoLicencia ?? null,
+    licenciaEstado: c.codigoLicencia ? (c.licenciaEstado ?? "Vigente") : null,
+    licenciaMotivo: c.licenciaMotivo ?? null,
     creadoEn: c.creadoEn,
   };
 }
@@ -161,4 +166,62 @@ export async function registrarReclamo(repo: Repositorio, input: unknown) {
   if (!parsed.success) throw new ErrorDominio(primerError(parsed.error), 422);
   const { acepta: _acepta, ...datos } = parsed.data; // eslint-disable-line @typescript-eslint/no-unused-vars
   return repo.crearReclamo({ ...datos, codigo: generarCodigoReclamo() });
+}
+
+/**
+ * MORD-36: ciclo de vida de la licencia. Revocada es final y libera el puesto.
+ * Reactivar (volver a Vigente) solo es posible desde En revisión o Suspendida.
+ */
+export const TRANSICIONES_LICENCIA: Record<EstadoLicencia, EstadoLicencia[]> = {
+  Vigente: ["En revisión", "Suspendida", "Revocada"],
+  "En revisión": ["Vigente", "Suspendida", "Revocada"],
+  Suspendida: ["Vigente", "Revocada"],
+  Revocada: [],
+};
+
+export async function cambiarEstadoLicencia(repo: Repositorio, comercianteId: string, input: unknown): Promise<Comerciante> {
+  const parsed = cambioLicenciaSchema.safeParse(input);
+  if (!parsed.success) throw new ErrorDominio(primerError(parsed.error), 422);
+  const c = await repo.buscarComerciantePorId(comercianteId);
+  if (!c) throw new ErrorDominio("Comerciante no encontrado", 404);
+  if (c.estado !== "Aprobado" || !c.codigoLicencia) throw new ErrorDominio("El comerciante no tiene una licencia emitida", 409);
+  const actual = c.licenciaEstado ?? "Vigente";
+  const { estado, motivo } = parsed.data;
+  if (!TRANSICIONES_LICENCIA[actual].includes(estado))
+    throw new ErrorDominio(`No se puede pasar la licencia de «${actual}» a «${estado}»`, 409);
+  if (estado === "Revocada" && c.puestoId) {
+    await repo.liberarPuesto(c.puestoId);
+    return repo.actualizarComerciante(comercianteId, { licenciaEstado: estado, licenciaMotivo: motivo, puestoId: null });
+  }
+  return repo.actualizarComerciante(comercianteId, { licenciaEstado: estado, licenciaMotivo: motivo });
+}
+
+/** MORD-36: reporte ciudadano (anónimo) de una falta en un comercio con licencia. */
+export async function registrarReporte(repo: Repositorio, input: unknown) {
+  const parsed = reporteSchema.safeParse(input);
+  if (!parsed.success) throw new ErrorDominio(primerError(parsed.error), 422);
+  const c = await repo.buscarComerciantePorLicencia(parsed.data.codigoLicencia);
+  if (!c) throw new ErrorDominio("No encontramos un comercio con ese código de licencia", 404);
+  const r = await repo.crearReporte({ ...parsed.data, codigo: generarCodigoReporte() });
+  return { codigo: r.codigo, creadoEn: r.creadoEn };
+}
+
+/** MORD-36: bandeja de reportes para el administrador, con el comercio asociado. */
+export async function listarReportesAdmin(repo: Repositorio) {
+  const reportes = await repo.listarReportes();
+  return Promise.all(reportes.map(async (r) => {
+    const c = await repo.buscarComerciantePorLicencia(r.codigoLicencia);
+    return {
+      ...r,
+      comercio: c ? { id: c.id, razonSocial: c.razonSocial, puestoId: c.puestoId, licenciaEstado: c.licenciaEstado ?? "Vigente" } : null,
+    };
+  }));
+}
+
+export async function atenderReporte(repo: Repositorio, id: string) {
+  const r = await repo.buscarReporte(id);
+  if (!r) throw new ErrorDominio("Reporte no encontrado", 404);
+  if (r.estado === "Atendido") throw new ErrorDominio("El reporte ya fue atendido", 409);
+  await repo.marcarReporteAtendido(id);
+  return { id, estado: "Atendido" as const };
 }

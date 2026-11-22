@@ -151,3 +151,27 @@ export function correoSegunEstado(c: Comerciante, urlBase: string): Correo {
   if (c.estado === "Aprobado" && c.puestoId) return correoPuestoAsignado(c, urlBase);
   return correoDecision(c, urlBase);
 }
+
+/** MORD-36: aviso al comerciante de un cambio en su licencia. */
+export function correoLicencia(c: Comerciante, urlBase: string): Correo {
+  const estado = c.licenciaEstado ?? "Vigente";
+  const n = escaparHtml(c.razonSocial);
+  const motivo = escaparHtml(c.licenciaMotivo ?? "—");
+  const info: Record<string, { titulo: string; color: string; hacer: string }> = {
+    Vigente: { titulo: "Tu licencia está vigente nuevamente", color: "#1d6b41", hacer: "Puedes seguir trabajando con normalidad. Mantén tu licencia visible en tu puesto." },
+    "En revisión": { titulo: "Tu licencia está en revisión", color: "#f0a432", hacer: "Puedes seguir trabajando mientras dure la revisión. Acércate a la oficina de administración del mercado con tu DNI para dar tus descargos." },
+    Suspendida: { titulo: "Tu licencia fue suspendida", color: "#d2452a", hacer: "No puedes atender en tu puesto mientras dure la suspensión. Acércate a la oficina de administración del mercado con tu DNI para regularizar tu situación." },
+    Revocada: { titulo: "Tu licencia fue revocada", color: "#10241a", hacer: "Tu puesto fue liberado. Si no estás de acuerdo, puedes presentar un reclamo en el Libro de Reclamaciones o acercarte a la oficina de administración del mercado." },
+  };
+  const i = info[estado];
+  return {
+    para: c.email,
+    asunto: `${i.titulo} – MercaOrden`,
+    texto: plano(i.titulo, [`Negocio: ${c.razonSocial} · Licencia ${c.codigoLicencia ?? ""}`, `Motivo: ${c.licenciaMotivo ?? "—"}`, `¿Qué hago? ${i.hacer}`, `Consulta tu solicitud: ${urlBase}/comerciantes/estado`]),
+    html: plantilla(i.titulo, i.color, [
+      `La licencia <b>${escaparHtml(c.codigoLicencia ?? "")}</b> de <b>${n}</b> ahora está: <b>${escaparHtml(estado)}</b>.`,
+      `<b>Motivo:</b> ${motivo}`,
+      `<b>¿Qué hago?</b> ${escaparHtml(i.hacer)}`,
+    ], { texto: "Ver mi solicitud", url: `${urlBase}/comerciantes/estado` }),
+  };
+}

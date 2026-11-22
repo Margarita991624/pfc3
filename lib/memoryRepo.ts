@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
-import type { Comerciante, Denuncia, Reclamo, EstadoDenuncia, EstadoSolicitud, Puesto, Repositorio } from "./types";
+import type { Comerciante, Denuncia, Reclamo, Reporte, EstadoDenuncia, EstadoSolicitud, Puesto, Repositorio } from "./types";
 
 /** Repositorio en memoria: usado por las pruebas automatizadas y por el modo demo sin base de datos. */
 export class RepositorioMemoria implements Repositorio {
   comerciantes: Comerciante[] = [];
   denuncias: Denuncia[] = [];
   reclamos: Reclamo[] = [];
+  reportes: Reporte[] = [];
   puestos: Puesto[];
 
   constructor(puestos?: Puesto[]) {
@@ -48,6 +49,21 @@ export class RepositorioMemoria implements Repositorio {
     return nueva;
   }
   async buscarDenunciaPorCodigo(codigo: string) { return this.denuncias.find((d) => d.codigo === codigo) ?? null; }
+  async liberarPuesto(puestoId: string) {
+    const p = this.puestos.find((x) => x.id === puestoId);
+    if (p) p.comercianteId = null;
+  }
+  async crearReporte(r: Omit<Reporte, "id" | "creadoEn" | "estado">) {
+    const nuevo: Reporte = { ...r, id: randomUUID(), estado: "Nuevo", creadoEn: new Date().toISOString() };
+    this.reportes.push(nuevo);
+    return nuevo;
+  }
+  async listarReportes() { return [...this.reportes].sort((a, b) => b.creadoEn.localeCompare(a.creadoEn)); }
+  async buscarReporte(id: string) { return this.reportes.find((r) => r.id === id) ?? null; }
+  async marcarReporteAtendido(id: string) {
+    const r = this.reportes.find((x) => x.id === id);
+    if (r) r.estado = "Atendido";
+  }
   async crearReclamo(r: Omit<Reclamo, "id" | "creadoEn">) {
     const nuevo = { ...r, id: randomUUID(), creadoEn: new Date().toISOString() };
     this.reclamos.push(nuevo);

@@ -11,6 +11,8 @@ type Resultado = {
   motivoRechazo: string | null;
   puestoId: string | null;
   codigoLicencia: string | null;
+  licenciaEstado: string | null;
+  licenciaMotivo: string | null;
   creadoEn: string;
 };
 
@@ -77,7 +79,7 @@ export default function MiSolicitud() {
             </>
           )}
 
-          {res.estado === "Aprobado" && !res.puestoId && (
+          {res.estado === "Aprobado" && !res.puestoId && (res.licenciaEstado ?? "Vigente") === "Vigente" && (
             <>
               <div className="estado-grande Aprobado" role="status">
                 <h2>¡Tu solicitud fue aprobada!</h2>
@@ -90,7 +92,21 @@ export default function MiSolicitud() {
             </>
           )}
 
-          {res.estado === "Aprobado" && res.puestoId && (
+          {res.estado === "Aprobado" && res.licenciaEstado && res.licenciaEstado !== "Vigente" && (
+            <>
+              <div className="estado-grande Rechazado" role="status">
+                <h2>Tu licencia está {res.licenciaEstado === "En revisión" ? "en revisión" : res.licenciaEstado.toLowerCase()}</h2>
+                {res.licenciaMotivo && <p><b>Motivo:</b> {res.licenciaMotivo}</p>}
+              </div>
+              <Guia pasos={[
+                res.licenciaEstado === "En revisión" ? <><b>Puedes seguir trabajando</b> mientras dure la revisión.</> : res.licenciaEstado === "Suspendida" ? <><b>No puedes atender en tu puesto</b> mientras dure la suspensión.</> : <><b>Tu puesto fue liberado</b> y la licencia ya no es válida.</>,
+                <><b>Acércate a la oficina de administración del mercado</b> con tu DNI para dar tus descargos o regularizar tu situación.</>,
+                <><b>¿No estás de acuerdo?</b> Puedes presentar un reclamo en el <Link href="/libro-reclamaciones">Libro de Reclamaciones</Link>.</>,
+              ]} />
+            </>
+          )}
+
+          {res.estado === "Aprobado" && res.puestoId && (res.licenciaEstado ?? "Vigente") === "Vigente" && (
             <>
               <div className="estado-grande Aprobado" role="status">
                 <h2>¡Felicidades! Ya eres comerciante formalizado</h2>

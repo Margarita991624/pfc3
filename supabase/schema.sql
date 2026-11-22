@@ -81,3 +81,21 @@ create table if not exists public.reclamos (
 alter table public.reclamos enable row level security;
 grant select, insert, update, delete on public.reclamos to service_role;
 revoke all on public.reclamos from anon, authenticated;
+
+-- MORD-36: ciclo de vida de la licencia y reportes ciudadanos de faltas.
+alter table public.comerciantes
+  add column if not exists licencia_estado text not null default 'Vigente'
+    check (licencia_estado in ('Vigente','En revisión','Suspendida','Revocada')),
+  add column if not exists licencia_motivo text;
+create table if not exists public.reportes (
+  id uuid primary key default gen_random_uuid(),
+  codigo text not null unique,
+  codigo_licencia text not null,
+  categoria text not null,
+  descripcion text not null,
+  estado text not null default 'Nuevo' check (estado in ('Nuevo','Atendido')),
+  creado_en timestamptz not null default now()
+);
+alter table public.reportes enable row level security;
+grant select, insert, update, delete on public.reportes to service_role;
+revoke all on public.reportes from anon, authenticated;
