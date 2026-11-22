@@ -13,3 +13,4 @@ playwright-report/
 blob-report/
 sbom*.cdx.json
 __pycache__/
+e2e-results/

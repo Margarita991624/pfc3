@@ -49,7 +49,7 @@ jobs:
       - name: Verificar cabeceras de seguridad
         run: |
           h=$(curl -sI "$TARGET/")
-          for k in content-security-policy strict-transport-security x-frame-options x-content-type-options referrer-policy permissions-policy; do
+          for k in content-security-policy strict-transport-security x-frame-options x-content-type-options referrer-policy permissions-policy cross-origin-opener-policy cross-origin-resource-policy; do
             echo "$h" | grep -qi "^$k:" && echo "OK $k" || { echo "::error::Falta la cabecera $k"; exit 1; }
           done
           if echo "$h" | grep -qi '^x-powered-by:'; then echo "::error::Se expone X-Powered-By"; exit 1; fi
