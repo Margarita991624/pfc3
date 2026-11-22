@@ -50,3 +50,40 @@ describe("MORD-35 · Constancia con datos opcionales", () => {
     expect(correosReclamo(r, "c@example.com")[1].asunto).toContain("queja");
   });
 });
+
+describe("MORD-35 · Responder hojas del Libro de Reclamaciones", () => {
+  it("cuenta días hábiles (sin sábados ni domingos) desde el día siguiente al registro", async () => {
+    const { diasHabilesTranscurridos } = await import("@/lib/services");
+    expect(diasHabilesTranscurridos(new Date("2026-11-20T15:00:00Z"), new Date("2026-11-20T20:00:00Z"))).toBe(0); // mismo día
+    expect(diasHabilesTranscurridos(new Date("2026-11-20T15:00:00Z"), new Date("2026-11-23T15:00:00Z"))).toBe(1); // vie → lun
+    expect(diasHabilesTranscurridos(new Date("2026-11-20T15:00:00Z"), new Date("2026-11-30T15:00:00Z"))).toBe(6);
+  });
+  it("la bandeja muestra los días restantes del plazo de 15 días hábiles", async () => {
+    const { listarReclamosAdmin } = await import("@/lib/services");
+    const r = await registrarReclamo(repo, hoja);
+    const [item] = await listarReclamosAdmin(repo, new Date(r.creadoEn));
+    expect(item).toMatchObject({ estado: "Recibido", diasRestantes: 15 });
+  });
+  it("el borrador formal incluye número, referencia, INDECOPI y obliga a completar los corchetes", async () => {
+    const { plantillaRespuestaReclamo } = await import("@/lib/plantillaReclamo");
+    const { responderReclamo } = await import("@/lib/services");
+    const r = await registrarReclamo(repo, hoja);
+    const borrador = plantillaRespuestaReclamo(r);
+    expect(borrador).toContain(r.codigo);
+    expect(borrador).toContain("INDECOPI");
+    await expect(responderReclamo(repo, r.id, { respuesta: borrador })).rejects.toMatchObject({ status: 422 });
+    const final = borrador.replace(/\[[^\]]*\]/g, "se revisó su solicitud y se atenderá en 48 horas");
+    const ok = await responderReclamo(repo, r.id, { respuesta: final });
+    expect(ok).toMatchObject({ estado: "Respondido", respuesta: final });
+    await expect(responderReclamo(repo, r.id, { respuesta: final })).rejects.toMatchObject({ status: 409 });
+    await expect(responderReclamo(repo, "x", { respuesta: final })).rejects.toMatchObject({ status: 404 });
+  });
+  it("el correo de respuesta va al consumidor con el texto escapado", async () => {
+    const { correoRespuestaReclamo } = await import("@/lib/correos");
+    const r = await registrarReclamo(repo, hoja);
+    const c = correoRespuestaReclamo({ ...r, respuesta: "Hola <b>Juana</b>\n\nSegundo párrafo" });
+    expect(c.para).toBe("juana@example.com");
+    expect(c.asunto).toContain(r.codigo);
+    expect(c.html).toContain("&lt;b&gt;Juana&lt;/b&gt;");
+  });
+});

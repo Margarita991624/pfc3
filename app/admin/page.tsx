@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
-import type { Comerciante, Denuncia, EstadoDenuncia, EstadoLicencia, Puesto, Reporte } from "@/lib/types";
-import { Alerta, Candado, Check, Documento, Megafono, Qr, Sobre, Tienda } from "../iconos";
+import { Fragment, useCallback, useEffect, useState } from "react";
+import type { Comerciante, Denuncia, EstadoDenuncia, EstadoLicencia, Puesto, Reclamo, Reporte } from "@/lib/types";
+import { plantillaRespuestaReclamo } from "@/lib/plantillaReclamo";
+import { Alerta, Candado, Check, Documento, Libro, Megafono, Qr, Sobre, Tienda } from "../iconos";
 
 // MORD-36: acciones de licencia permitidas (el backend vuelve a validar el flujo).
 const ACC_LIC: Record<EstadoLicencia, { estado: EstadoLicencia; texto: string }[]> = {
@@ -11,6 +12,7 @@ const ACC_LIC: Record<EstadoLicencia, { estado: EstadoLicencia; texto: string }[
   Suspendida: [{ estado: "Vigente", texto: "Reactivar" }, { estado: "Revocada", texto: "Revocar (libera el puesto)" }],
   Revocada: [],
 };
+type ReclamoAdmin = Reclamo & { diasRestantes: number };
 type ReporteAdmin = Reporte & { comercio: { id: string; razonSocial: string; puestoId: string | null; licenciaEstado: EstadoLicencia } | null };
 
 // HU16: acciones permitidas según el estado actual (el backend vuelve a validar el flujo).
@@ -29,7 +31,10 @@ export default function Admin() {
   const [puestos, setPuestos] = useState<Puesto[]>([]);
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   const [denuncias, setDenuncias] = useState<Denuncia[]>([]);
-  const [vista, setVista] = useState<"comerciantes" | "denuncias" | "reportes">("comerciantes");
+  const [vista, setVista] = useState<"comerciantes" | "denuncias" | "reportes" | "reclamos">("comerciantes");
+  const [reclamos, setReclamos] = useState<ReclamoAdmin[]>([]);
+  const [respondiendo, setRespondiendo] = useState<string | null>(null);
+  const [borrador, setBorrador] = useState("");
   const [reportes, setReportes] = useState<ReporteAdmin[]>([]);
 
   const cargar = useCallback(async () => {
@@ -43,6 +48,8 @@ export default function Admin() {
     if (d.ok) setDenuncias(await d.json());
     const rp = await fetch("/api/reportes");
     if (rp.ok) setReportes(await rp.json());
+    const rc = await fetch("/api/reclamos");
+    if (rc.ok) setReclamos(await rc.json());
   }, []);
 
   // Carga inicial de datos desde la API (sincronización con un sistema externo).
@@ -85,6 +92,16 @@ export default function Admin() {
       </form>
     );
 
+  async function enviarRespuesta(r: ReclamoAdmin) {
+    setMsg(null);
+    const res = await fetch(`/api/reclamos/${r.id}/responder`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ respuesta: borrador }) });
+    const j = await res.json();
+    if (!res.ok) return setMsg({ ok: false, texto: j.error });
+    setMsg({ ok: true, texto: j.enviado ? `Respuesta a la hoja ${r.codigo} registrada y enviada a ${r.email}` : `Respuesta a la hoja ${r.codigo} registrada (el correo no se pudo enviar; reenvíala desde tu correo)` });
+    setRespondiendo(null);
+    void cargar();
+  }
+
   function cambiarLicencia(id: string, estado: EstadoLicencia, nombre: string) {
     const motivo = window.prompt(`Motivo para «${estado}» (${nombre}):`) ?? "";
     if (!motivo) return;
@@ -107,7 +124,7 @@ export default function Admin() {
       <div className="barra">
         <div>
           <span className="ceja">Panel municipal</span>
-          <h1>{vista === "comerciantes" ? "Solicitudes de comerciantes" : "Bandeja de denuncias"}</h1>
+          <h1>{{ comerciantes: "Solicitudes de comerciantes", denuncias: "Bandeja de denuncias", reportes: "Reportes de comercios", reclamos: "Libro de Reclamaciones" }[vista]}</h1>
         </div>
         <button className="sec" onClick={() => fetch("/api/admin/logout", { method: "POST" }).then(() => setAutenticado(false))}>Cerrar sesión</button>
       </div>
@@ -122,11 +139,53 @@ export default function Admin() {
         <button role="tab" aria-selected={vista === "reportes"} className={vista === "reportes" ? "activa" : ""} onClick={() => { setVista("reportes"); setMsg(null); }}>
           <Documento /> Reportes de comercios <span className="cuenta">{reportes.filter((r) => r.estado === "Nuevo").length}</span>
         </button>
+        <button role="tab" aria-selected={vista === "reclamos"} className={vista === "reclamos" ? "activa" : ""} onClick={() => { setVista("reclamos"); setMsg(null); }}>
+          <Libro /> Libro de Reclamaciones <span className="cuenta">{reclamos.filter((r) => r.estado !== "Respondido").length}</span>
+        </button>
       </div>
 
       {msg && <div className={msg.ok ? "ok" : "err"} role="status" style={{ marginBottom: 18 }}>{msg.ok ? <Check /> : <Alerta />}<span>{msg.texto}</span></div>}
 
-      {vista === "reportes" ? (
+      {vista === "reclamos" ? (
+        <div className="card" style={{ padding: 0, overflowX: "auto" }}>
+          <table>
+            <thead><tr><th>Hoja</th><th>Consumidor</th><th>Detalle</th><th>Plazo</th><th>Acciones</th></tr></thead>
+            <tbody>
+              {reclamos.length === 0 && <tr><td colSpan={5} className="vacio">No hay hojas de reclamación.</td></tr>}
+              {reclamos.map((r) => (
+                <Fragment key={r.id}>
+                  <tr>
+                    <td><b className="mono">{r.codigo}</b><br /><span className={`tag ${r.tipo === "Queja" ? "Pendiente" : "Rechazado"}`}>{r.tipo}</span><br /><span className="aviso">{new Date(r.creadoEn).toLocaleString("es-PE")}</span></td>
+                    <td><b>{r.nombres}</b><br /><span className="aviso">{r.documento} · {r.email}</span></td>
+                    <td style={{ maxWidth: 340 }}><b>{r.descripcionBien}</b>
+                      <details className="relato"><summary>Ver detalle y pedido</summary><p><b>Qué pasó:</b> {r.detalle}</p><p><b>Pide:</b> {r.pedido}</p></details>
+                      {r.respuesta && <details className="relato"><summary>Ver respuesta enviada</summary><p>{r.respuesta}</p></details>}
+                    </td>
+                    <td>{r.estado === "Respondido"
+                      ? <span className="tag Aprobado">Respondido</span>
+                      : <span className={`tag ${r.diasRestantes <= 3 ? "Rechazado" : "Pendiente"}`}>{r.diasRestantes > 0 ? `Quedan ${r.diasRestantes} días hábiles` : "Plazo vencido"}</span>}
+                    </td>
+                    <td>{r.estado !== "Respondido" && <button className="chico" onClick={() => { setRespondiendo(r.id); setBorrador(plantillaRespuestaReclamo(r)); setMsg(null); }}><Sobre size={15} /> Responder</button>}</td>
+                  </tr>
+                  {respondiendo === r.id && (
+                    <tr>
+                      <td colSpan={5} style={{ background: "var(--papel)" }}>
+                        <label htmlFor="respuesta">Respuesta formal para {r.nombres} (completa las partes entre corchetes)</label>
+                        <textarea id="respuesta" value={borrador} onChange={(e) => setBorrador(e.target.value)} style={{ minHeight: 300, fontSize: 15 }} />
+                        <div className="acciones">
+                          <button onClick={() => enviarRespuesta(r)}><Sobre /> Enviar respuesta al consumidor</button>
+                          <button className="sec" onClick={() => setRespondiendo(null)}>Cancelar</button>
+                          <span className="aviso">Se enviará a {r.email} y quedará registrada en la hoja.</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : vista === "reportes" ? (
         <div className="card" style={{ padding: 0, overflowX: "auto" }}>
           <table>
             <thead><tr><th>Reporte</th><th>Comercio</th><th>Falta</th><th>Estado</th><th>Acciones</th></tr></thead>

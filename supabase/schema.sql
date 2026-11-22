@@ -99,3 +99,8 @@ create table if not exists public.reportes (
 alter table public.reportes enable row level security;
 grant select, insert, update, delete on public.reportes to service_role;
 revoke all on public.reportes from anon, authenticated;
+
+-- MORD-35: respuesta del proveedor a la hoja de reclamación.
+alter table public.reclamos
+  add column if not exists respuesta text,
+  add column if not exists respondido_en timestamptz;

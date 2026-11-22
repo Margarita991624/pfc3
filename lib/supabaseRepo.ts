@@ -9,6 +9,12 @@ const aComerciante = (r: any): Comerciante => ({
   codigoLicencia: r.codigo_licencia, puestoId: r.puesto_id, creadoEn: r.creado_en,
   licenciaEstado: r.licencia_estado ?? "Vigente", licenciaMotivo: r.licencia_motivo ?? null,
 });
+const aReclamo = (r: any): Reclamo => ({
+  id: r.id, codigo: r.codigo, tipo: r.tipo, nombres: r.nombres, documento: r.documento, domicilio: r.domicilio,
+  email: r.email, telefono: r.telefono, apoderado: r.apoderado, bienTipo: r.bien_tipo, monto: r.monto === null ? null : Number(r.monto),
+  descripcionBien: r.descripcion_bien, detalle: r.detalle, pedido: r.pedido, creadoEn: r.creado_en,
+  estado: r.estado === "Respondido" ? "Respondido" : "Recibido", respuesta: r.respuesta ?? null, respondidoEn: r.respondido_en ?? null,
+});
 const aReporte = (r: any): Reporte => ({
   id: r.id, codigo: r.codigo, codigoLicencia: r.codigo_licencia, categoria: r.categoria,
   descripcion: r.descripcion, estado: r.estado, creadoEn: r.creado_en,
@@ -96,7 +102,21 @@ export class RepositorioSupabase implements Repositorio {
   async buscarDenunciaPorCodigo(codigo: string) {
     const d = check(await this.db.from("denuncias").select("*").eq("codigo", codigo).maybeSingle());
     return d ? aDenuncia(d) : null;
-  }  async liberarPuesto(puestoId: string) {
+  }  async listarReclamos() {
+    const filas = check(await this.db.from("reclamos").select("*").order("creado_en", { ascending: false }).limit(500));
+    return (filas ?? []).map(aReclamo);
+  }
+  async buscarReclamo(id: string) {
+    const d = check(await this.db.from("reclamos").select("*").eq("id", id).maybeSingle());
+    return d ? aReclamo(d) : null;
+  }
+  /** Actualización condicional: una hoja solo se responde una vez. */
+  async responderReclamo(id: string, respuesta: string) {
+    const d = check(await this.db.from("reclamos").update({ estado: "Respondido", respuesta, respondido_en: new Date().toISOString() })
+      .eq("id", id).neq("estado", "Respondido").select().maybeSingle());
+    return d ? aReclamo(d) : null;
+  }
+  async liberarPuesto(puestoId: string) {
     check(await this.db.from("puestos").update({ comerciante_id: null }).eq("id", puestoId));
   }
   async crearReporte(r: Omit<Reporte, "id" | "creadoEn" | "estado">) {
