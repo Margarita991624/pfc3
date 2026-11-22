@@ -1,12 +1,17 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Comerciante, Denuncia, Reclamo, EstadoDenuncia, EstadoSolicitud, Puesto, Repositorio } from "./types";
+import type { Comerciante, Denuncia, Reclamo, Reporte, EstadoDenuncia, EstadoSolicitud, Puesto, Repositorio } from "./types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const aComerciante = (r: any): Comerciante => ({
   id: r.id, nombres: r.nombres, dni: r.dni, ruc: r.ruc, razonSocial: r.razon_social, giro: r.giro,
   email: r.email, telefono: r.telefono, estado: r.estado, motivoRechazo: r.motivo_rechazo,
   codigoLicencia: r.codigo_licencia, puestoId: r.puesto_id, creadoEn: r.creado_en,
+  licenciaEstado: r.licencia_estado ?? "Vigente", licenciaMotivo: r.licencia_motivo ?? null,
+});
+const aReporte = (r: any): Reporte => ({
+  id: r.id, codigo: r.codigo, codigoLicencia: r.codigo_licencia, categoria: r.categoria,
+  descripcion: r.descripcion, estado: r.estado, creadoEn: r.creado_en,
 });
 const aPuesto = (r: any): Puesto => ({ id: r.id, bloque: r.bloque, numero: r.numero, giro: r.giro, comercianteId: r.comerciante_id });
 const aDenuncia = (r: any): Denuncia => ({
@@ -30,6 +35,8 @@ const aFila = (c: Partial<Comerciante>) => {
   if (c.motivoRechazo !== undefined) fila.motivo_rechazo = c.motivoRechazo;
   if (c.codigoLicencia !== undefined) fila.codigo_licencia = c.codigoLicencia;
   if (c.puestoId !== undefined) fila.puesto_id = c.puestoId;
+  if (c.licenciaEstado !== undefined) fila.licencia_estado = c.licenciaEstado;
+  if (c.licenciaMotivo !== undefined) fila.licencia_motivo = c.licenciaMotivo;
   return fila;
 };
 
@@ -89,7 +96,25 @@ export class RepositorioSupabase implements Repositorio {
   async buscarDenunciaPorCodigo(codigo: string) {
     const d = check(await this.db.from("denuncias").select("*").eq("codigo", codigo).maybeSingle());
     return d ? aDenuncia(d) : null;
-  }  async crearReclamo(r: Omit<Reclamo, "id" | "creadoEn">) {
+  }  async liberarPuesto(puestoId: string) {
+    check(await this.db.from("puestos").update({ comerciante_id: null }).eq("id", puestoId));
+  }
+  async crearReporte(r: Omit<Reporte, "id" | "creadoEn" | "estado">) {
+    const fila = { codigo: r.codigo, codigo_licencia: r.codigoLicencia, categoria: r.categoria, descripcion: r.descripcion };
+    return aReporte(check(await this.db.from("reportes").insert(fila).select().single()));
+  }
+  async listarReportes() {
+    const filas = check(await this.db.from("reportes").select("*").order("creado_en", { ascending: false }).limit(500));
+    return (filas ?? []).map(aReporte);
+  }
+  async buscarReporte(id: string) {
+    const d = check(await this.db.from("reportes").select("*").eq("id", id).maybeSingle());
+    return d ? aReporte(d) : null;
+  }
+  async marcarReporteAtendido(id: string) {
+    check(await this.db.from("reportes").update({ estado: "Atendido" }).eq("id", id));
+  }
+  async crearReclamo(r: Omit<Reclamo, "id" | "creadoEn">) {
     // Mapeo explícito (lista blanca) camelCase → columnas.
     const fila = {
       codigo: r.codigo, tipo: r.tipo, nombres: r.nombres, documento: r.documento, domicilio: r.domicilio,

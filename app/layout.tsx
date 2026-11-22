@@ -43,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
             <div className="pie-col">
               <span className="pie-tit">Información</span>
+              <Link href="/reportar">Reportar un comercio</Link>
               <Link href="/terminos">Términos y condiciones</Link>
               <Link href="/libro-reclamaciones" className="libro"><Libro size={18} /> Libro de Reclamaciones</Link>
             </div>
