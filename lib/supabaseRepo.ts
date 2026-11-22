@@ -13,11 +13,24 @@ const aDenuncia = (r: any): Denuncia => ({
   id: r.id, codigo: r.codigo, categoria: r.categoria, ubicacion: r.ubicacion, descripcion: r.descripcion,
   estado: r.estado, creadoEn: r.creado_en, actualizadoEn: r.actualizado_en,
 });
+/**
+ * Mapeo explícito camelCase → columnas. Solo se copian campos conocidos (lista blanca):
+ * corrige el hallazgo de CodeQL "Remote property injection" (js/remote-property-injection).
+ */
 const aFila = (c: Partial<Comerciante>) => {
-  const m: Record<string, unknown> = {};
-  const mapa: Record<string, string> = { razonSocial: "razon_social", motivoRechazo: "motivo_rechazo", codigoLicencia: "codigo_licencia", puestoId: "puesto_id" };
-  for (const [k, v] of Object.entries(c)) if (k !== "id" && k !== "creadoEn") m[mapa[k] ?? k] = v;
-  return m;
+  const fila: Record<string, unknown> = {};
+  if (c.nombres !== undefined) fila.nombres = c.nombres;
+  if (c.dni !== undefined) fila.dni = c.dni;
+  if (c.ruc !== undefined) fila.ruc = c.ruc;
+  if (c.razonSocial !== undefined) fila.razon_social = c.razonSocial;
+  if (c.giro !== undefined) fila.giro = c.giro;
+  if (c.email !== undefined) fila.email = c.email;
+  if (c.telefono !== undefined) fila.telefono = c.telefono;
+  if (c.estado !== undefined) fila.estado = c.estado;
+  if (c.motivoRechazo !== undefined) fila.motivo_rechazo = c.motivoRechazo;
+  if (c.codigoLicencia !== undefined) fila.codigo_licencia = c.codigoLicencia;
+  if (c.puestoId !== undefined) fila.puesto_id = c.puestoId;
+  return fila;
 };
 
 function check<T>(res: { data: T; error: { message: string } | null }): T {
