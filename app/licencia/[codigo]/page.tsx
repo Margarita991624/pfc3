@@ -20,7 +20,7 @@ export default function VerLicencia({ params }: { params: Promise<{ codigo: stri
   return (
     <div className="aparece">
       <div className="cabecera" style={{ textAlign: "center" }}>
-        <span className="ceja">Verificación pública <span className="chip">HU04</span></span>
+        <span className="ceja">Verificación pública</span>
       </div>
       <article className="licencia">
         <div className="izq">

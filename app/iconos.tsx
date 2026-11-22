@@ -16,6 +16,8 @@ export const Documento = ({ size }: P) => <svg {...base(size)}><path d="M6 3h8l5
 export const Servidor = ({ size }: P) => <svg {...base(size)}><rect x="3" y="4" width="18" height="7" rx="2" /><rect x="3" y="13" width="18" height="7" rx="2" /><path d="M7 7.5h.01M7 16.5h.01" /></svg>;
 export const Radar = ({ size }: P) => <svg {...base(size)}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><path d="M12 12l6-6" /></svg>;
 export const Flecha = ({ size }: P) => <svg {...base(size)}><path d="M5 12h14M13 6l6 6-6 6" /></svg>;
+export const Sobre = ({ size }: P) => <svg {...base(size)}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 7l9 6 9-6" /></svg>;
+export const Libro = ({ size }: P) => <svg {...base(size)}><path d="M4 4h10a4 4 0 014 4v12H8a4 4 0 01-4-4V4z" /><path d="M4 16a4 4 0 014-4h10" /><path d="M9 7h5" /></svg>;
 export const Copiar = ({ size }: P) => <svg {...base(size)}><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V5a2 2 0 012-2h8" /></svg>;
 
 /** Logotipo: un cajón de mercado ordenado en cuadrícula. */

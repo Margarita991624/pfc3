@@ -18,3 +18,11 @@ export function generarCodigoSeguimiento(): string {
 export function generarCodigoLicencia(): string {
   return `LIC-${bloque(6)}`;
 }
+
+/** MORD-35: número de hoja de reclamación, p. ej. REC-2026-7K3M9Q. */
+export function generarCodigoReclamo(ahora = new Date()): string {
+  const A = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let s = "";
+  for (let i = 0; i < 6; i++) s += A[randomInt(A.length)];
+  return `REC-${ahora.getFullYear()}-${s}`;
+}
