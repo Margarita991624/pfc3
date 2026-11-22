@@ -8,6 +8,8 @@ const PORT = Number(process.env.E2E_PORT ?? 3100);
 
 export default defineConfig({
   testDir: "e2e",
+  // Carpeta propia: Playwright limpia su outputDir y no debe borrar el JUnit de Vitest (test-results/).
+  outputDir: "e2e-results",
   timeout: 30_000,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"], ["html", { open: "never", outputFolder: "playwright-report" }], ["junit", { outputFile: "test-results/e2e-junit.xml" }]],
