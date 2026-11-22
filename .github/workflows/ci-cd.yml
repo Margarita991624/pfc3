@@ -75,11 +75,6 @@ jobs:
       - run: npm ci
       - name: npm audit (falla con vulnerabilidades altas o críticas)
         run: npm audit --audit-level=high
-      - name: Revisión de dependencias del PR
-        if: github.event_name == 'pull_request'
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: high
 
   # 4) SEGURIDAD: análisis estático de código (SAST)
   sast:
