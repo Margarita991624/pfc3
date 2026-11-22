@@ -26,3 +26,8 @@ export function generarCodigoReclamo(ahora = new Date()): string {
   for (let i = 0; i < 6; i++) s += A[randomInt(A.length)];
   return `REC-${ahora.getFullYear()}-${s}`;
 }
+
+/** MORD-36: código de reporte de falta, p. ej. RPT-7K3M9Q. */
+export function generarCodigoReporte(): string {
+  return `RPT-${bloque(6)}`;
+}

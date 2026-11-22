@@ -1,8 +1,17 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import type { Comerciante, Denuncia, EstadoDenuncia, Puesto } from "@/lib/types";
-import { Alerta, Candado, Check, Megafono, Qr, Sobre, Tienda } from "../iconos";
+import type { Comerciante, Denuncia, EstadoDenuncia, EstadoLicencia, Puesto, Reporte } from "@/lib/types";
+import { Alerta, Candado, Check, Documento, Megafono, Qr, Sobre, Tienda } from "../iconos";
+
+// MORD-36: acciones de licencia permitidas (el backend vuelve a validar el flujo).
+const ACC_LIC: Record<EstadoLicencia, { estado: EstadoLicencia; texto: string }[]> = {
+  Vigente: [{ estado: "En revisión", texto: "Poner en revisión" }, { estado: "Suspendida", texto: "Suspender" }, { estado: "Revocada", texto: "Revocar (libera el puesto)" }],
+  "En revisión": [{ estado: "Vigente", texto: "Reactivar" }, { estado: "Suspendida", texto: "Suspender" }, { estado: "Revocada", texto: "Revocar (libera el puesto)" }],
+  Suspendida: [{ estado: "Vigente", texto: "Reactivar" }, { estado: "Revocada", texto: "Revocar (libera el puesto)" }],
+  Revocada: [],
+};
+type ReporteAdmin = Reporte & { comercio: { id: string; razonSocial: string; puestoId: string | null; licenciaEstado: EstadoLicencia } | null };
 
 // HU16: acciones permitidas según el estado actual (el backend vuelve a validar el flujo).
 const ACCIONES: Record<EstadoDenuncia, { estado: EstadoDenuncia; texto: string; clase?: string }[]> = {
@@ -20,7 +29,8 @@ export default function Admin() {
   const [puestos, setPuestos] = useState<Puesto[]>([]);
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   const [denuncias, setDenuncias] = useState<Denuncia[]>([]);
-  const [vista, setVista] = useState<"comerciantes" | "denuncias">("comerciantes");
+  const [vista, setVista] = useState<"comerciantes" | "denuncias" | "reportes">("comerciantes");
+  const [reportes, setReportes] = useState<ReporteAdmin[]>([]);
 
   const cargar = useCallback(async () => {
     const r = await fetch("/api/comerciantes");
@@ -31,6 +41,8 @@ export default function Admin() {
     if (p.ok) setPuestos(await p.json());
     const d = await fetch("/api/denuncias");
     if (d.ok) setDenuncias(await d.json());
+    const rp = await fetch("/api/reportes");
+    if (rp.ok) setReportes(await rp.json());
   }, []);
 
   // Carga inicial de datos desde la API (sincronización con un sistema externo).
@@ -73,6 +85,12 @@ export default function Admin() {
       </form>
     );
 
+  function cambiarLicencia(id: string, estado: EstadoLicencia, nombre: string) {
+    const motivo = window.prompt(`Motivo para «${estado}» (${nombre}):`) ?? "";
+    if (!motivo) return;
+    void accion(`/api/comerciantes/${id}/licencia`, { estado, motivo }, `Licencia de ${nombre}: ${estado}`);
+  }
+
   async function moverDenuncia(codigo: string, estado: EstadoDenuncia) {
     await accion(`/api/denuncias/${encodeURIComponent(codigo)}/estado`, { estado }, `Denuncia ${codigo}: ${estado}`);
   }
@@ -101,11 +119,37 @@ export default function Admin() {
         <button role="tab" aria-selected={vista === "denuncias"} className={vista === "denuncias" ? "activa" : ""} onClick={() => { setVista("denuncias"); setMsg(null); }}>
           <Megafono /> Denuncias <span className="cuenta">{porAtender}</span>
         </button>
+        <button role="tab" aria-selected={vista === "reportes"} className={vista === "reportes" ? "activa" : ""} onClick={() => { setVista("reportes"); setMsg(null); }}>
+          <Documento /> Reportes de comercios <span className="cuenta">{reportes.filter((r) => r.estado === "Nuevo").length}</span>
+        </button>
       </div>
 
       {msg && <div className={msg.ok ? "ok" : "err"} role="status" style={{ marginBottom: 18 }}>{msg.ok ? <Check /> : <Alerta />}<span>{msg.texto}</span></div>}
 
-      {vista === "denuncias" ? (
+      {vista === "reportes" ? (
+        <div className="card" style={{ padding: 0, overflowX: "auto" }}>
+          <table>
+            <thead><tr><th>Reporte</th><th>Comercio</th><th>Falta</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody>
+              {reportes.length === 0 && <tr><td colSpan={5} className="vacio">No hay reportes de comercios.</td></tr>}
+              {reportes.map((r) => (
+                <tr key={r.id}>
+                  <td><b className="mono">{r.codigo}</b><br /><span className="aviso">{new Date(r.creadoEn).toLocaleString("es-PE")}</span></td>
+                  <td>{r.comercio ? <><b>{r.comercio.razonSocial}</b><br /><span className="aviso">{r.codigoLicencia}{r.comercio.puestoId ? ` · Puesto ${r.comercio.puestoId}` : ""}</span><br /><span className={`tag ${r.comercio.licenciaEstado === "Vigente" ? "Aprobado" : "Rechazado"}`}>Licencia {r.comercio.licenciaEstado}</span></> : r.codigoLicencia}</td>
+                  <td style={{ maxWidth: 340 }}><b>{r.categoria}</b><details className="relato"><summary>Ver detalle</summary><p>{r.descripcion}</p></details></td>
+                  <td><span className={`tag ${r.estado === "Nuevo" ? "Pendiente" : "Aprobado"}`}>{r.estado}</span></td>
+                  <td>
+                    <div className="ops">
+                      {r.comercio && r.comercio.licenciaEstado === "Vigente" && <button className="chico peligro" onClick={() => cambiarLicencia(r.comercio!.id, "En revisión", r.comercio!.razonSocial)}>Poner licencia en revisión</button>}
+                      {r.estado === "Nuevo" && <button className="chico sec" onClick={() => accion(`/api/reportes/${r.id}/atender`, {}, `Reporte ${r.codigo} atendido`)}>Marcar atendido</button>}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : vista === "denuncias" ? (
         <>
           <div className="kpis">
             <div className="kpi"><span>Total</span><b>{denuncias.length}</b></div>
@@ -182,6 +226,13 @@ export default function Admin() {
                       </select>
                     )}
                     {c.puestoId && <span className="tag Aprobado">Puesto {c.puestoId}</span>}
+                    {c.codigoLicencia && (c.licenciaEstado ?? "Vigente") !== "Vigente" && <span className="tag Rechazado" title={c.licenciaMotivo ?? ""}>Licencia {c.licenciaEstado}</span>}
+                    {c.codigoLicencia && (c.puestoId || (c.licenciaEstado ?? "Vigente") !== "Vigente") && ACC_LIC[c.licenciaEstado ?? "Vigente"].length > 0 && (
+                      <select aria-label={`Gestionar licencia de ${c.razonSocial}`} value="" onChange={(e) => e.target.value && cambiarLicencia(c.id, e.target.value as EstadoLicencia, c.razonSocial)}>
+                        <option value="" disabled>Gestionar licencia…</option>
+                        {ACC_LIC[c.licenciaEstado ?? "Vigente"].map((a) => <option key={a.estado} value={a.estado}>{a.texto}</option>)}
+                      </select>
+                    )}
                     <button className="chico sec" title="Reenviar al comerciante el aviso de su estado actual" onClick={() => accion(`/api/comerciantes/${c.id}/notificar`, {}, `Correo enviado a ${c.razonSocial}`)}><Sobre size={15} /> Reenviar correo</button>
                     {c.codigoLicencia && <Link href={`/licencia/${c.codigoLicencia}`} style={{ display: "inline-flex", gap: 6, alignItems: "center", fontWeight: 600 }}><Qr size={16} />Ver licencia {c.codigoLicencia}</Link>}
                   </div>

@@ -13,6 +13,22 @@ export interface Comerciante {
   motivoRechazo: string | null;
   codigoLicencia: string | null;
   puestoId: string | null;
+  /** MORD-36: estado de la licencia emitida (por defecto Vigente). */
+  licenciaEstado?: EstadoLicencia;
+  licenciaMotivo?: string | null;
+  creadoEn: string;
+}
+
+export type EstadoLicencia = "Vigente" | "En revisión" | "Suspendida" | "Revocada";
+
+/** MORD-36: reporte ciudadano de una falta o anomalía en un comercio formalizado. */
+export interface Reporte {
+  id: string;
+  codigo: string;
+  codigoLicencia: string;
+  categoria: string;
+  descripcion: string;
+  estado: "Nuevo" | "Atendido";
   creadoEn: string;
 }
 
@@ -71,5 +87,10 @@ export interface Repositorio {
   buscarDenunciaPorCodigo(codigo: string): Promise<Denuncia | null>;
   listarDenuncias(): Promise<Denuncia[]>;
   crearReclamo(r: Omit<Reclamo, "id" | "creadoEn">): Promise<Reclamo>;
+  liberarPuesto(puestoId: string): Promise<void>;
+  crearReporte(r: Omit<Reporte, "id" | "creadoEn" | "estado">): Promise<Reporte>;
+  listarReportes(): Promise<Reporte[]>;
+  buscarReporte(id: string): Promise<Reporte | null>;
+  marcarReporteAtendido(id: string): Promise<void>;
   actualizarEstadoDenuncia(codigo: string, anterior: EstadoDenuncia, nuevo: EstadoDenuncia): Promise<Denuncia | null>;
 }

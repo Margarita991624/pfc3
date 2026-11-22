@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Candado, Check, Escudo, Flecha, Libro, Lupa, Megafono, Ojo, Qr, QrDecorativo, Sobre, Tienda } from "./iconos";
+import { Alerta, Candado, Check, Escudo, Flecha, Libro, Lupa, Megafono, Ojo, Qr, QrDecorativo, Sobre, Tienda } from "./iconos";
 import { CONTACTO_EMAIL } from "@/lib/contacto";
 
 export default function Inicio() {
@@ -100,6 +100,10 @@ export default function Inicio() {
             <span className="ico"><Sobre size={26} /></span>
             <span><b>Escríbenos un correo</b><span>{CONTACTO_EMAIL}</span></span>
           </a>
+          <Link href="/reportar">
+            <span className="ico"><Alerta size={26} /></span>
+            <span><b>Reportar un comercio</b><span>¿Precios abusivos o balanza adulterada? Avísanos.</span></span>
+          </Link>
           <Link href="/libro-reclamaciones">
             <span className="ico"><Libro size={26} /></span>
             <span><b>Libro de Reclamaciones</b><span>Registra un reclamo o una queja sobre nuestra atención.</span></span>

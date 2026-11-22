@@ -1,8 +1,15 @@
 "use client";
 import { use, useEffect, useState } from "react";
 import { Alerta, Check, Escudo, Logo } from "../../iconos";
+import { FormReporte } from "../../formReporte";
 
-type Licencia = { razonSocial: string; ruc: string; giro: string; puesto: string; vigente: boolean; codigoLicencia: string; qr: string };
+type Licencia = { razonSocial: string; ruc: string; giro: string; puesto: string; vigente: boolean; estadoLicencia: string; codigoLicencia: string; qr: string };
+
+const NO_VIGENTE: Record<string, string> = {
+  "En revisión": "EN REVISIÓN · la administración está evaluando este comercio",
+  Suspendida: "SUSPENDIDA · este comercio no puede atender por ahora",
+  Revocada: "REVOCADA · este comercio ya no tiene licencia",
+};
 
 export default function VerLicencia({ params }: { params: Promise<{ codigo: string }> }) {
   const { codigo } = use(params);
@@ -36,7 +43,7 @@ export default function VerLicencia({ params }: { params: Promise<{ codigo: stri
           <h1 style={{ marginTop: 14 }}>Licencia <span style={{ whiteSpace: "nowrap" }}>{lic.codigoLicencia}</span></h1>
           <div className={`estado-lic ${lic.vigente ? "si" : "no"}`}>
             {lic.vigente ? <Check /> : <Alerta />}
-            <span>{lic.vigente ? "VIGENTE · comerciante formalizado" : "NO VIGENTE"}</span>
+            <span>{lic.vigente ? "VIGENTE · comerciante formalizado" : (NO_VIGENTE[lic.estadoLicencia] ?? "NO VIGENTE")}</span>
           </div>
           <dl className="datos">
             <dt>Titular</dt><dd>{lic.razonSocial}</dd>
@@ -47,6 +54,10 @@ export default function VerLicencia({ params }: { params: Promise<{ codigo: stri
           <p className="aviso" style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 22 }}><Escudo size={16} /> Solo se muestran datos públicos: nunca el documento ni el contacto del titular.</p>
         </div>
       </article>
+      <details className="card" style={{ maxWidth: 760, margin: "22px auto 0" }}>
+        <summary style={{ cursor: "pointer", fontWeight: 700, fontSize: 17 }}>¿Viste una falta en este comercio? Repórtala aquí</summary>
+        <div style={{ marginTop: 10 }}><FormReporte codigoLicencia={lic.codigoLicencia} /></div>
+      </details>
     </div>
   );
 }

@@ -45,6 +45,18 @@ export const cambioEstadoDenunciaSchema = z.object({
   estado: z.enum(["En revisión", "Derivada", "Cerrada"], { message: "Estado no válido" }),
 });
 
+/** MORD-36: cambio de estado de licencia y reportes de faltas. */
+export const cambioLicenciaSchema = z.object({
+  estado: z.enum(["Vigente", "En revisión", "Suspendida", "Revocada"], { message: "Estado de licencia no válido" }),
+  motivo: z.string().trim().min(10, "Escribe el motivo (al menos 10 caracteres)").max(500),
+});
+export const CATEGORIAS_REPORTE = ["Precios abusivos o especulación", "Balanza o pesos adulterados", "Insalubridad o productos en mal estado", "Ocupa más espacio del asignado", "Opera otro giro o sin licencia visible", "Maltrato al cliente", "Otro"] as const;
+export const reporteSchema = z.object({
+  codigoLicencia: z.string().trim().toUpperCase().regex(/^LIC-[A-Z0-9]{6}$/, "Código de licencia inválido (LIC-XXXXXX)"),
+  categoria: z.enum(CATEGORIAS_REPORTE, { message: "Elige qué tipo de falta viste" }),
+  descripcion: z.string().trim().min(10, "Cuéntanos qué viste (al menos 10 caracteres)").max(2000),
+});
+
 /** MORD-35: hoja del Libro de Reclamaciones virtual. */
 const opcional = (max: number) => z.string().trim().max(max).optional().transform((v) => (v ? v : null));
 export const reclamoSchema = z.object({

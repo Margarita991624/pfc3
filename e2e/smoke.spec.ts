@@ -123,6 +123,38 @@ test.describe("@smoke MercaOrden", () => {
     await expect(page.locator(".codigo")).toHaveText(/^REC-\d{4}-[A-Z2-9]{6}$/);
   });
 
+  test("MORD-36: un cliente reporta una falta y el admin pone la licencia en revisión; el QR lo refleja", async ({ page, request }) => {
+    const r = await request.post("/api/comerciantes", {
+      data: { nombres: "Marco Torres", dni: "11223344", ruc: "20131380951", razonSocial: "Verduras Marco E2E", giro: "Verduras", email: "marco@example.com", telefono: "955667788" },
+    });
+    expect(r.status()).toBe(201);
+    await page.goto("/admin");
+    await page.getByLabel("Contraseña").fill("e2e-admin-pruebas");
+    await page.getByRole("button", { name: "Ingresar" }).click();
+    await page.getByRole("row", { name: /Verduras Marco E2E/ }).getByRole("button", { name: "Aprobar" }).click();
+    await expect(page.getByText("Solicitud aprobada y licencia generada")).toBeVisible();
+    await page.getByRole("row", { name: /Verduras Marco E2E/ }).getByRole("combobox").selectOption("B-201");
+    await expect(page.getByText("Puesto asignado")).toBeVisible();
+    const enlace = page.getByRole("row", { name: /Verduras Marco E2E/ }).getByRole("link", { name: /Ver licencia/ });
+    const lic = ((await enlace.textContent()) ?? "").match(/LIC-[A-Z0-9]{6}/)![0];
+
+    await page.goto(`/licencia/${lic}`);
+    await page.getByText("¿Viste una falta en este comercio? Repórtala aquí").click();
+    await page.getByLabel("¿Qué falta viste?").selectOption("Balanza o pesos adulterados");
+    await page.getByLabel("Cuéntanos qué pasó").fill("La balanza marca 200 g de más en cada kilo.");
+    await page.getByRole("button", { name: "Enviar reporte" }).click();
+    await expect(page.getByText(/Recibimos tu reporte RPT-/)).toBeVisible();
+
+    await page.goto("/admin");
+    await page.getByRole("tab", { name: /Reportes de comercios/ }).click();
+    page.once("dialog", (d) => d.accept("Balanza adulterada verificada en inspección"));
+    await page.getByRole("row", { name: /Verduras Marco E2E/ }).getByRole("button", { name: "Poner licencia en revisión" }).click();
+    await expect(page.getByText("Licencia de Verduras Marco E2E: En revisión")).toBeVisible();
+
+    await page.goto(`/licencia/${lic}`);
+    await expect(page.getByText(/EN REVISIÓN/)).toBeVisible();
+  });
+
   test("seguridad · /admin protegido y cabeceras de seguridad presentes", async ({ request }) => {
     expect((await request.get("/api/comerciantes")).status()).toBe(401);
     const res = await request.get("/");
