@@ -36,3 +36,14 @@ describe("MORD-34 · Plantillas de correo al comerciante", () => {
     expect(escaparHtml(`'&`)).toBe("&#39;&amp;");
   });
 });
+
+describe("MORD-34 · Textos alternativos de los correos", () => {
+  it("el rechazo sin motivo y los textos planos no dejan campos vacíos rotos", () => {
+    const r = correoDecision({ ...base, estado: "Rechazado", motivoRechazo: null }, URL_BASE);
+    expect(r.texto).toContain("Motivo: —");
+    const a = correoDecision({ ...base, estado: "Aprobado", codigoLicencia: null }, URL_BASE);
+    expect(a.texto).toContain("Licencia");
+    const p = correoPuestoAsignado({ ...base, estado: "Aprobado" }, URL_BASE);
+    expect(p.texto).toContain("Puesto");
+  });
+});

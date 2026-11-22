@@ -35,3 +35,18 @@ describe("MORD-35 · Libro de Reclamaciones", () => {
     expect(contacto.asunto).toContain(r.codigo);
   });
 });
+
+describe("MORD-35 · Constancia con datos opcionales", () => {
+  it("incluye teléfono, apoderado y monto cuando el consumidor los indica", async () => {
+    const r = await registrarReclamo(repo, { ...hoja, telefono: "987654321", apoderado: "María Ramos", bienTipo: "Producto", monto: "120" });
+    const [consumidor] = correosReclamo(r, "c@example.com");
+    expect(consumidor.html).toContain("987654321");
+    expect(consumidor.html).toContain("María Ramos");
+    expect(consumidor.html).toContain("S/ 120.00");
+    expect(consumidor.texto).toContain("15 días hábiles");
+  });
+  it("registra quejas además de reclamos", async () => {
+    const r = await registrarReclamo(repo, { ...hoja, tipo: "Queja" });
+    expect(correosReclamo(r, "c@example.com")[1].asunto).toContain("queja");
+  });
+});
