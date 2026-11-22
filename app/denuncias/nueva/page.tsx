@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { CATEGORIAS_DENUNCIA } from "@/lib/validation";
 import { Alerta, Candado, Check, Copiar, Lupa, Ojo, Telefono } from "../../iconos";
+import { BotonImprimir, Guia } from "../../guia";
 
 export default function NuevaDenuncia() {
   const [codigo, setCodigo] = useState<string | null>(null);
@@ -34,7 +35,7 @@ export default function NuevaDenuncia() {
 
   if (codigo)
     return (
-      <div className="boleto aparece">
+      <div className="boleto aparece" style={{ maxWidth: 760 }}>
         <div className="check"><Check size={30} /></div>
         <h1>Denuncia registrada</h1>
         <p className="aviso" style={{ fontSize: 15, marginTop: 10 }}>Guarda este código. Es la única forma de consultar tu denuncia; no está asociado a tu identidad.</p>
@@ -43,8 +44,18 @@ export default function NuevaDenuncia() {
           <p className="codigo" style={{ margin: "8px 0 0" }}>{codigo}</p>
         </div>
         <div className="acciones" style={{ justifyContent: "center" }}>
-          <button type="button" className="sec" onClick={copiar}><Copiar /> {copiado ? "¡Copiado!" : "Copiar código"}</button>
-          <Link className="btn" href="/denuncias/seguimiento"><Lupa /> Consultar estado</Link>
+          <button type="button" className="sec grande" onClick={copiar}><Copiar /> {copiado ? "¡Copiado!" : "Copiar código"}</button>
+          <BotonImprimir texto="Imprimir código" />
+        </div>
+        <Guia pasos={[
+          <><b>Anota el código en un papel</b> o tómale una foto con tu celular. Sin este código no podrás ver cómo va tu denuncia.</>,
+          <><b>No te llamaremos ni te escribiremos.</b> No guardamos tu nombre ni tu teléfono: así te protegemos.</>,
+          <><b>En unos días, entra a «Seguir mi denuncia»</b> (en el menú de arriba) y escribe tu código para ver en qué etapa está.</>,
+          <><b>Si ves «Derivada»</b>, significa que tu caso fue enviado a la Policía (PNP) o a la Fiscalía.</>,
+          <><b>Si estás en peligro ahora</b>, no esperes: llama al <b>105</b>.</>,
+        ]} />
+        <div className="acciones" style={{ justifyContent: "center" }}>
+          <Link className="btn grande" href="/denuncias/seguimiento"><Lupa /> Consultar estado</Link>
         </div>
       </div>
     );

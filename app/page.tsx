@@ -15,7 +15,7 @@ export default function Inicio() {
             <Link className="btn grande" href="/comerciantes/registro"><Tienda /> Registrarme</Link>
             <Link className="btn grande tomate" href="/denuncias/nueva"><Megafono /> Denunciar</Link>
           </div>
-          <div className="confianza">
+          <div className="confianza no-imprimir">
             <span><Ojo /> No guardamos tu IP</span>
             <span><Qr /> Licencia con QR verificable</span>
             <span><Candado /> Conexión cifrada (HTTPS + HSTS)</span>
@@ -41,6 +41,21 @@ export default function Inicio() {
             <Escudo size={22} />
             <div><b>DEN-8F3K-Q2LM</b>Denuncia en revisión</div>
           </div>
+        </div>
+      </section>
+
+      <section aria-label="Consultar un trámite">
+        <span className="ceja">¿Ya hiciste un trámite?</span>
+        <h2>Revisa cómo va, sin correos ni llamadas</h2>
+        <div className="atajos">
+          <Link href="/comerciantes/estado">
+            <span className="ico"><Tienda size={26} /></span>
+            <span><b>Ver mi solicitud de comerciante</b><span>Solo necesitas tu RUC y tu DNI.</span></span>
+          </Link>
+          <Link href="/denuncias/seguimiento">
+            <span className="ico"><Lupa size={26} /></span>
+            <span><b>Ver cómo va mi denuncia</b><span>Usa el código DEN que te dimos.</span></span>
+          </Link>
         </div>
       </section>
 

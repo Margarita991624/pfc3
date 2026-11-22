@@ -1,11 +1,19 @@
 "use client";
 import { useState } from "react";
-import { Alerta, Escudo, Lupa } from "../../iconos";
+import { Alerta, Escudo, Lupa, Telefono } from "../../iconos";
 
 type Resultado = { codigo: string; categoria: string; estado: string; actualizadoEn: string };
 
 // Etapas del caso. Se muestran con CSS (data-paso) para que el estado actual aparezca una sola vez como texto.
 const ETAPAS = ["Recibida", "En revisión", "Derivada", "Cerrada"];
+
+// MORD-33: explicación en palabras sencillas de cada estado y qué hacer.
+const EXPLICACION: Record<string, { que: string; hacer: string }> = {
+  Recibida: { que: "Tu denuncia llegó correctamente y está esperando ser revisada.", hacer: "No tienes que hacer nada. Vuelve a consultar en unos días con este mismo código." },
+  "En revisión": { que: "Una persona de la administración está leyendo y analizando tu caso.", hacer: "Espera. Vuelve a consultar en unos días." },
+  Derivada: { que: "Tu caso fue enviado a la Policía Nacional (PNP) o a la Fiscalía para que actúen.", hacer: "Si tienes más información o pruebas, acércate a la comisaría más cercana y menciona tu código." },
+  Cerrada: { que: "La administración terminó de atender este caso.", hacer: "Si el problema continúa, puedes hacer una nueva denuncia en cualquier momento." },
+};
 
 export default function Seguimiento() {
   const [res, setRes] = useState<Resultado | null>(null);
@@ -32,7 +40,7 @@ export default function Seguimiento() {
       <div className="cabecera" style={{ textAlign: "center" }}>
         <span className="ceja">Seguimiento <span className="chip">HU17</span></span>
         <h1>Seguimiento de denuncia</h1>
-        <p className="sub" style={{ marginInline: "auto" }}>Ingresa el código que te dimos al denunciar. Solo tú lo conoces.</p>
+        <p className="sub" style={{ marginInline: "auto" }}>Escribe el código que te dimos al denunciar (empieza con DEN). Solo tú lo conoces.</p>
       </div>
 
       <form className="card" onSubmit={consultar}>
@@ -56,6 +64,13 @@ export default function Seguimiento() {
                 <li key={paso} data-paso={paso} className={i < actual ? "hecho" : i === actual ? "actual" : ""} aria-current={i === actual ? "step" : undefined}><i /></li>
               ))}
             </ol>
+            {EXPLICACION[res.estado] && (
+              <div className="guia" style={{ marginTop: 20 }}>
+                <p style={{ fontSize: 18, margin: 0 }}><b>¿Qué significa?</b> {EXPLICACION[res.estado].que}</p>
+                <p style={{ fontSize: 18, margin: "10px 0 0" }}><b>¿Qué hago ahora?</b> {EXPLICACION[res.estado].hacer}</p>
+              </div>
+            )}
+            <div className="emergencia"><Telefono /><span>Si estás en peligro, llama al <b>105</b> (PNP).</span></div>
           </div>
         )}
       </form>
