@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Comerciante, Denuncia, EstadoSolicitud, Puesto, Repositorio } from "./types";
+import type { Comerciante, Denuncia, EstadoDenuncia, EstadoSolicitud, Puesto, Repositorio } from "./types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const aComerciante = (r: any): Comerciante => ({
@@ -89,5 +89,17 @@ export class RepositorioSupabase implements Repositorio {
   async buscarDenunciaPorCodigo(codigo: string) {
     const d = check(await this.db.from("denuncias").select("*").eq("codigo", codigo).maybeSingle());
     return d ? aDenuncia(d) : null;
+  }  async listarDenuncias() {
+    const filas = check(await this.db.from("denuncias").select("*").order("creado_en", { ascending: false }).limit(500));
+    return (filas ?? []).map(aDenuncia);
   }
+  /** Actualización condicional (estado anterior) para evitar carreras entre dos administradores. */
+  async actualizarEstadoDenuncia(codigo: string, anterior: EstadoDenuncia, nuevo: EstadoDenuncia) {
+    const d = check(
+      await this.db.from("denuncias").update({ estado: nuevo, actualizado_en: new Date().toISOString() })
+        .eq("codigo", codigo).eq("estado", anterior).select().maybeSingle(),
+    );
+    return d ? aDenuncia(d) : null;
+  }
+
 }

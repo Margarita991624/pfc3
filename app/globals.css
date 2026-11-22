@@ -176,13 +176,21 @@ td .ops{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .avatar{display:inline-grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--mango-2);color:#8a5a0b;font-weight:800;font-size:13px;margin-right:12px;flex:none}
 .quien{display:flex;align-items:center}
 .mono{font-family:var(--mono);font-size:13.5px}
-.tag{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:12.5px;font-weight:700;background:var(--mango-2);color:#8a5a0b}
+.tag{white-space:nowrap;display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:12.5px;font-weight:700;background:var(--mango-2);color:#8a5a0b}
 .tag::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
 .tag.Aprobado{background:var(--verde-2);color:var(--verde)}.tag.Rechazado{background:var(--tomate-2);color:var(--tomate)}
-.tag.Cerrada,.tag.Derivada{background:var(--verde-2);color:var(--verde)}
+.tag.Cerrada{background:var(--verde-2);color:var(--verde)}
 .vacio{text-align:center;padding:40px 10px;color:var(--gris)}
 .acceso{max-width:420px;margin:30px auto}
 .acceso .candado{width:56px;height:56px;border-radius:16px;background:var(--tinta);color:var(--mango);display:grid;place-items:center;margin-bottom:18px}
+
+.pestanas{display:inline-flex;gap:6px;background:var(--papel-2);border:1px solid var(--borde);border-radius:999px;padding:5px;margin-bottom:22px}
+.pestanas button{background:transparent;color:var(--tinta-2);box-shadow:none;padding:9px 16px;font-size:14px}
+.pestanas button:hover{background:rgba(255,255,255,.6);transform:none}
+.pestanas button.activa{background:var(--tinta);color:var(--papel)}
+.pestanas .cuenta{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--mango);color:var(--tinta);font-size:12px;font-weight:800}
+.tag.Recibida{background:var(--mango-2);color:#8a5a0b}.tag.Enrevisión{background:#e6eefb;color:#2a5aa8}.tag.Derivada{background:var(--tomate-2);color:var(--tomate)}
+details.relato{margin-top:4px;font-size:13.5px;color:var(--tinta-2)}details.relato summary{cursor:pointer;color:var(--verde);font-weight:600}details.relato p{margin:6px 0 0;white-space:pre-wrap}
 
 /* ---------- Licencia ---------- */
 .licencia{max-width:760px;margin:auto;display:grid;grid-template-columns:auto 1fr;gap:0;border-radius:24px;overflow:hidden;box-shadow:0 30px 60px -28px rgba(16,36,26,.5);border:1px solid var(--borde)}
