@@ -12,6 +12,12 @@ export const registroComercianteSchema = z.object({
   email: z.string().trim().email("Correo inválido"),
   telefono: z.string().trim().regex(/^9\d{8}$/, "Celular de 9 dígitos que empiece en 9"),
 });
+/** MORD-33: consulta pública del estado de la solicitud (sin correo): RUC + DNI. */
+export const consultaSolicitudSchema = z.object({
+  ruc: z.string().trim().regex(/^\d{11}$/, "El RUC debe tener 11 dígitos"),
+  dni: z.string().trim().regex(/^\d{8}$/, "El DNI debe tener 8 dígitos"),
+});
+
 export type RegistroComerciante = z.infer<typeof registroComercianteSchema>;
 
 export const decisionSchema = z.discriminatedUnion("decision", [

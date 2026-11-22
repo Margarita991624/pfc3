@@ -21,7 +21,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </Link>
             <nav className="menu" aria-label="Principal">
               <Link href="/comerciantes/registro">Registro de comerciantes</Link>
-              <Link href="/denuncias/seguimiento">Seguimiento</Link>
+              <Link href="/comerciantes/estado">Mi solicitud</Link>
+              <Link href="/denuncias/seguimiento">Seguir mi denuncia</Link>
               <Link href="/admin">Administración</Link>
               <Link className="cta" href="/denuncias/nueva">Denuncia anónima</Link>
             </nav>

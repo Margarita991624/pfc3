@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { RepositorioMemoria } from "@/lib/memoryRepo";
-import { asignarPuesto, decidirSolicitud, registrarComerciante, verificarLicencia } from "@/lib/services";
+import { asignarPuesto, consultarSolicitud, decidirSolicitud, registrarComerciante, verificarLicencia } from "@/lib/services";
 import { ErrorDominio } from "@/lib/errors";
 
 const valido = {
@@ -82,5 +82,33 @@ describe("HU04 · Verificación de licencia (MORD-13)", () => {
     expect(v.vigente).toBe(true);
     expect(JSON.stringify(v)).not.toContain(valido.dni);
     expect(JSON.stringify(v)).not.toContain(valido.email);
+  });
+});
+
+describe("MORD-33 · Consulta de la solicitud con RUC y DNI", () => {
+  it("Dado un comerciante registrado, cuando consulta con su RUC y DNI, entonces ve su estado sin datos de contacto", async () => {
+    await registrarComerciante(repo, valido);
+    const r = await consultarSolicitud(repo, { ruc: valido.ruc, dni: valido.dni });
+    expect(r.estado).toBe("Pendiente");
+    expect(JSON.stringify(r)).not.toContain(valido.email);
+    expect(JSON.stringify(r)).not.toContain(valido.telefono);
+  });
+  it("Dado un DNI que no coincide o un RUC inexistente, entonces responde el mismo 404 genérico", async () => {
+    await registrarComerciante(repo, valido);
+    const otroDni = await consultarSolicitud(repo, { ruc: valido.ruc, dni: "00000000" }).catch((e) => e);
+    const sinRuc = await consultarSolicitud(repo, { ruc: "20100070970", dni: valido.dni }).catch((e) => e);
+    expect(otroDni).toMatchObject({ status: 404 });
+    expect(sinRuc).toMatchObject({ status: 404, message: otroDni.message });
+  });
+  it("valida el formato de RUC y DNI (422)", async () => {
+    await expect(consultarSolicitud(repo, { ruc: "123", dni: "1" })).rejects.toMatchObject({ status: 422 });
+  });
+  it("Dado una solicitud aprobada con puesto, entonces muestra el puesto y el código de licencia", async () => {
+    const c = await registrarComerciante(repo, valido);
+    await decidirSolicitud(repo, c.id, { decision: "aprobar" });
+    await asignarPuesto(repo, c.id, { puestoId: "A-101" });
+    const r = await consultarSolicitud(repo, { ruc: valido.ruc, dni: valido.dni });
+    expect(r).toMatchObject({ estado: "Aprobado", puestoId: "A-101" });
+    expect(r.codigoLicencia).toMatch(/^LIC-/);
   });
 });

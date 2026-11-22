@@ -18,6 +18,8 @@ test.describe("@smoke MercaOrden", () => {
     await page.getByLabel("Celular").fill("987654321");
     await page.getByRole("button", { name: "Enviar solicitud" }).click();
     await expect(page.getByText("Estado: Pendiente")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "¿Y ahora qué hago?" })).toBeVisible();
+    await page.getByRole("button", { name: "Registrar otro comerciante" }).click();
 
     await page.getByLabel("Nombres y apellidos").fill("Rosa Quispe Huamán");
     await page.getByLabel("DNI").fill("45678912");
@@ -27,6 +29,22 @@ test.describe("@smoke MercaOrden", () => {
     await page.getByLabel("Celular").fill("987654321");
     await page.getByRole("button", { name: "Enviar solicitud" }).click();
     await expect(page.getByText("RUC ya registrado")).toBeVisible();
+  });
+
+  test("MORD-33: el comerciante consulta su solicitud con RUC y DNI y ve qué hacer", async ({ page, request }) => {
+    const r = await request.post("/api/comerciantes", {
+      data: { nombres: "Lucía Flores", dni: "87654321", ruc: "20100070970", razonSocial: "Abarrotes Lucía E2E", giro: "Abarrotes", email: "lucia@example.com", telefono: "934567812" },
+    });
+    expect(r.status()).toBe(201);
+    await page.goto("/comerciantes/estado");
+    await page.getByLabel("RUC").fill("20100070970");
+    await page.getByLabel("DNI").fill("11111111");
+    await page.getByRole("button", { name: "Consultar mi solicitud" }).click();
+    await expect(page.getByText("No encontramos una solicitud con ese RUC y DNI")).toBeVisible();
+    await page.getByLabel("DNI").fill("87654321");
+    await page.getByRole("button", { name: "Consultar mi solicitud" }).click();
+    await expect(page.getByRole("heading", { name: "Tu solicitud está en revisión" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "¿Y ahora qué hago?" })).toBeVisible();
   });
 
   test("HU02/HU03/HU04 · admin aprueba, asigna puesto y la licencia QR es pública", async ({ page, request }) => {
