@@ -1,5 +1,5 @@
 digraph D {
-  rankdir=LR; fontname="DejaVu Sans"; pad=0.3; nodesep=0.25; ranksep=0.35;
+  rankdir=TB; newrank=true; fontname="DejaVu Sans"; pad=0.3; nodesep=0.25; ranksep=0.35;
   node [fontname="DejaVu Sans", fontsize=10, shape=box, style="rounded,filled", color="#9aa5a0"];
   edge [color="#5d6b63", arrowsize=.7];
   label=<<b>Ciclo DevSecOps de MercaOrden · herramientas y control de seguridad por fase</b>>; labelloc=t; fontsize=15;
@@ -11,6 +11,10 @@ digraph D {
   deploy [label=<<b>DEPLOY</b><br/>Vercel (Git integration)<br/><font color="#b3261e">secretos cifrados en Vercel<br/>HTTPS + cabeceras CSP/HSTS</font>>, fillcolor="#fff7e6"];
   operate [label=<<b>OPERATE</b><br/>Vercel serverless · Supabase<br/><font color="#b3261e">RLS · service_role solo backend<br/>cookie HMAC httpOnly</font>>, fillcolor="#f3e9f7"];
   monitor [label=<<b>MONITOR</b><br/>/api/health + smoke test<br/>Vercel logs · Dependabot<br/><font color="#b3261e">alertas de seguridad<br/>en GitHub</font>>, fillcolor="#f3e9f7"];
-  plan -> code -> build -> test -> release -> deploy -> operate -> monitor;
-  monitor -> plan [constraint=false, style=dashed, label="  retroalimentación (nuevas HU / fixes)", fontsize=9];
+  {rank=same; plan; code; build; test;}
+  {rank=same; release; deploy; operate; monitor;}
+  plan -> code -> build -> test;
+  test -> release;
+  release -> deploy -> operate -> monitor;
+  monitor -> plan [style=dashed, constraint=false, xlabel="retroalimentación", fontsize=9];
 }
