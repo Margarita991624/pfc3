@@ -1,0 +1,130 @@
+name: CI/CD DevSecOps
+
+on:
+  push:
+    branches: [main, test]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # 1) BUILD + TEST: lint, tipos, pruebas unitarias con cobertura y build de producción
+  build-test:
+    name: Build y pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Lint (ESLint)
+        run: npm run lint
+      - name: Chequeo de tipos (TypeScript)
+        run: npm run typecheck
+      - name: Pruebas unitarias (Vitest) con cobertura
+        run: npm run test:coverage
+      - name: Resumen de pruebas
+        if: always()
+        run: |
+          echo "## Resultados de pruebas" >> $GITHUB_STEP_SUMMARY
+          node -e "const x=require('fs').readFileSync('test-results/junit.xml','utf8');const g=k=>x.match(new RegExp(k+'=\"(\\\\d+)\"'))[1];console.log('| Pruebas | Fallidas | Errores |\n|---|---|---|\n| '+g('tests')+' | '+g('failures')+' | '+g('errors')+' |')" >> $GITHUB_STEP_SUMMARY
+          node -e "const c=require('./coverage/coverage-summary.json').total;console.log('\n**Cobertura de lib/**: líneas '+c.lines.pct+'% · ramas '+c.branches.pct+'% · funciones '+c.functions.pct+'%')" >> $GITHUB_STEP_SUMMARY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: resultados-pruebas
+          path: |
+            test-results/
+            coverage/
+      - name: Build de producción (Next.js)
+        run: npm run build
+        env:
+          SESSION_SECRET: build-only-placeholder-not-used-at-runtime
+
+  # 2) SEGURIDAD: escaneo de secretos en todo el historial
+  secret-scan:
+    name: Escaneo de secretos (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 3) SEGURIDAD: análisis de dependencias (SCA)
+  dependencias:
+    name: Análisis de dependencias (npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: npm audit (falla con vulnerabilidades altas o críticas)
+        run: npm audit --audit-level=high
+      - name: Revisión de dependencias del PR
+        if: github.event_name == 'pull_request'
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
+  # 4) SEGURIDAD: análisis estático de código (SAST)
+  sast:
+    name: SAST (CodeQL)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+      - uses: github/codeql-action/analyze@v3
+
+  # 5) DEPLOY: Vercel despliega main automáticamente (integración Git). Este job verifica
+  #    el despliegue (smoke test) solo cuando todas las etapas anteriores pasaron.
+  deploy-verificacion:
+    name: Deploy a producción (Vercel) y smoke test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [build-test, secret-scan, dependencias, sast]
+    runs-on: ubuntu-latest
+    environment:
+      name: produccion
+      url: ${{ vars.PROD_URL }}
+    steps:
+      - name: Esperar despliegue de Vercel y verificar /api/health
+        env:
+          PROD_URL: ${{ vars.PROD_URL }}
+        run: |
+          if [ -z "$PROD_URL" ]; then echo "::warning::Defina la variable PROD_URL del repositorio"; exit 0; fi
+          for i in $(seq 1 20); do
+            code=$(curl -s -o /tmp/h.json -w '%{http_code}' "$PROD_URL/api/health" || true)
+            if [ "$code" = "200" ]; then cat /tmp/h.json; echo; echo "Producción OK: $PROD_URL" >> $GITHUB_STEP_SUMMARY; exit 0; fi
+            echo "Intento $i: HTTP $code, reintentando en 15 s"; sleep 15
+          done
+          echo "::error::La aplicación no respondió en $PROD_URL"; exit 1
+      - name: Verificar cabeceras de seguridad
+        env:
+          PROD_URL: ${{ vars.PROD_URL }}
+        run: |
+          [ -z "$PROD_URL" ] && exit 0
+          h=$(curl -sI "$PROD_URL/")
+          for k in content-security-policy x-frame-options x-content-type-options strict-transport-security; do
+            echo "$h" | grep -qi "^$k:" && echo "OK $k" || { echo "::error::Falta $k"; exit 1; }
+          done
