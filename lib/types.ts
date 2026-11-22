@@ -50,4 +50,6 @@ export interface Repositorio {
   ocuparPuesto(puestoId: string, comercianteId: string): Promise<boolean>;
   crearDenuncia(d: Omit<Denuncia, "id" | "creadoEn" | "actualizadoEn">): Promise<Denuncia>;
   buscarDenunciaPorCodigo(codigo: string): Promise<Denuncia | null>;
+  listarDenuncias(): Promise<Denuncia[]>;
+  actualizarEstadoDenuncia(codigo: string, anterior: EstadoDenuncia, nuevo: EstadoDenuncia): Promise<Denuncia | null>;
 }

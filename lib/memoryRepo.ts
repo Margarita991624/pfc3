@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import type { Comerciante, Denuncia, EstadoSolicitud, Puesto, Repositorio } from "./types";
+import type { Comerciante, Denuncia, EstadoDenuncia, EstadoSolicitud, Puesto, Repositorio } from "./types";
 
 /** Repositorio en memoria: usado por las pruebas automatizadas y por el modo demo sin base de datos. */
 export class RepositorioMemoria implements Repositorio {
@@ -47,4 +47,12 @@ export class RepositorioMemoria implements Repositorio {
     return nueva;
   }
   async buscarDenunciaPorCodigo(codigo: string) { return this.denuncias.find((d) => d.codigo === codigo) ?? null; }
+  async listarDenuncias() { return [...this.denuncias].sort((a, b) => b.creadoEn.localeCompare(a.creadoEn)); }
+  async actualizarEstadoDenuncia(codigo: string, anterior: EstadoDenuncia, nuevo: EstadoDenuncia) {
+    const d = this.denuncias.find((x) => x.codigo === codigo && x.estado === anterior);
+    if (!d) return null;
+    d.estado = nuevo;
+    d.actualizadoEn = new Date().toISOString();
+    return d;
+  }
 }

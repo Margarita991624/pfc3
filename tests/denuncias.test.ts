@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { RepositorioMemoria } from "@/lib/memoryRepo";
-import { consultarDenuncia, registrarDenuncia } from "@/lib/services";
+import { cambiarEstadoDenuncia, consultarDenuncia, listarDenunciasAdmin, registrarDenuncia } from "@/lib/services";
 import { generarCodigoSeguimiento } from "@/lib/tracking";
 
 const denuncia = {
@@ -42,5 +42,35 @@ describe("HU17 · Seguimiento de denuncia (MORD-26)", () => {
   });
   it("Dado un código inexistente, entonces 'Código no encontrado'", async () => {
     await expect(consultarDenuncia(repo, "DEN-AAAA-BBBB")).rejects.toThrow("Código no encontrado");
+  });
+});
+
+describe("HU16 · Gestionar y derivar denuncias (MORD-25)", () => {
+  it("Dado denuncias registradas, cuando el admin abre la bandeja, entonces las ve de la más reciente a la más antigua", async () => {
+    const a = await registrarDenuncia(repo, denuncia);
+    await new Promise((r) => setTimeout(r, 5));
+    const b = await registrarDenuncia(repo, { ...denuncia, categoria: "Extorsión" });
+    const lista = await listarDenunciasAdmin(repo);
+    expect(lista.map((d) => d.codigo)).toEqual([b.codigo, a.codigo]);
+  });
+  it("Dado una denuncia Recibida, cuando la reviso, la derivo y la cierro, entonces avanza por el flujo", async () => {
+    const { codigo } = await registrarDenuncia(repo, denuncia);
+    expect((await cambiarEstadoDenuncia(repo, codigo, { estado: "En revisión" })).estado).toBe("En revisión");
+    expect((await cambiarEstadoDenuncia(repo, codigo, { estado: "Derivada" })).estado).toBe("Derivada");
+    expect((await cambiarEstadoDenuncia(repo, codigo, { estado: "Cerrada" })).estado).toBe("Cerrada");
+    expect((await consultarDenuncia(repo, codigo)).estado).toBe("Cerrada");
+  });
+  it("no permite saltar etapas ni reabrir una denuncia cerrada (409)", async () => {
+    const { codigo } = await registrarDenuncia(repo, denuncia);
+    await expect(cambiarEstadoDenuncia(repo, codigo, { estado: "Cerrada" })).rejects.toMatchObject({ status: 409 });
+    await cambiarEstadoDenuncia(repo, codigo, { estado: "En revisión" });
+    await cambiarEstadoDenuncia(repo, codigo, { estado: "Cerrada" });
+    await expect(cambiarEstadoDenuncia(repo, codigo, { estado: "En revisión" })).rejects.toMatchObject({ status: 409 });
+  });
+  it("valida el estado y el código (422) y responde 404 si no existe", async () => {
+    const { codigo } = await registrarDenuncia(repo, denuncia);
+    await expect(cambiarEstadoDenuncia(repo, codigo, { estado: "Recibida" })).rejects.toMatchObject({ status: 422 });
+    await expect(cambiarEstadoDenuncia(repo, "xx", { estado: "En revisión" })).rejects.toMatchObject({ status: 422 });
+    await expect(cambiarEstadoDenuncia(repo, "DEN-0000-0000", { estado: "En revisión" })).rejects.toMatchObject({ status: 404 });
   });
 });

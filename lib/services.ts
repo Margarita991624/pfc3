@@ -1,10 +1,11 @@
 import { ErrorDominio } from "./errors";
 import { generarCodigoLicencia, generarCodigoSeguimiento } from "./tracking";
-import type { Comerciante, Denuncia, Repositorio } from "./types";
+import type { Comerciante, Denuncia, EstadoDenuncia, Repositorio } from "./types";
 import {
   asignacionPuestoSchema,
   codigoSeguimientoSchema,
   decisionSchema,
+  cambioEstadoDenunciaSchema,
   denunciaSchema,
   registroComercianteSchema,
 } from "./validation";
@@ -101,4 +102,32 @@ export async function consultarDenuncia(repo: Repositorio, codigo: unknown) {
   const d = await repo.buscarDenunciaPorCodigo(parsed.data);
   if (!d) throw new ErrorDominio("Código no encontrado", 404);
   return { codigo: d.codigo, categoria: d.categoria, estado: d.estado, actualizadoEn: d.actualizadoEn };
+}
+
+/** HU16 (MORD-25): flujo permitido del caso. Solo avanza; "Cerrada" es final. */
+export const TRANSICIONES_DENUNCIA: Record<EstadoDenuncia, EstadoDenuncia[]> = {
+  Recibida: ["En revisión"],
+  "En revisión": ["Derivada", "Cerrada"],
+  Derivada: ["Cerrada"],
+  Cerrada: [],
+};
+
+/** HU16 (MORD-25): bandeja del administrador (solo contenido de la denuncia, sin datos de identidad). */
+export async function listarDenunciasAdmin(repo: Repositorio) {
+  return repo.listarDenuncias();
+}
+
+/** HU16 (MORD-25): cambiar el estado de una denuncia respetando el flujo. */
+export async function cambiarEstadoDenuncia(repo: Repositorio, codigo: unknown, input: unknown) {
+  const cod = codigoSeguimientoSchema.safeParse(codigo);
+  if (!cod.success) throw new ErrorDominio(primerError(cod.error), 422);
+  const parsed = cambioEstadoDenunciaSchema.safeParse(input);
+  if (!parsed.success) throw new ErrorDominio(primerError(parsed.error), 422);
+  const actual = await repo.buscarDenunciaPorCodigo(cod.data);
+  if (!actual) throw new ErrorDominio("Código no encontrado", 404);
+  if (!TRANSICIONES_DENUNCIA[actual.estado].includes(parsed.data.estado))
+    throw new ErrorDominio(`No se puede pasar de «${actual.estado}» a «${parsed.data.estado}»`, 409);
+  const d = await repo.actualizarEstadoDenuncia(cod.data, actual.estado, parsed.data.estado);
+  if (!d) throw new ErrorDominio("La denuncia cambió mientras la editabas; recarga la bandeja", 409);
+  return { codigo: d.codigo, estado: d.estado, actualizadoEn: d.actualizadoEn };
 }
