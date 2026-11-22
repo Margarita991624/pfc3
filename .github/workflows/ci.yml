@@ -1,0 +1,181 @@
+name: CI
+
+# Pipeline principal de MercaOrden. Corre en cada PR, en push a main/test y a mano.
+# Fases DevSecOps: CODE (convenciones, archivos) → BUILD → TEST (unit + E2E)
+# → SEGURIDAD (secretos, SAST, SCA, SBOM) → job puerta «CI».
+on:
+  pull_request:
+  push:
+    branches: [main, test]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  gitleaks:
+    name: Búsqueda de secretos
+    uses: ./.github/workflows/gitleaks.yml
+    permissions:
+      contents: read
+
+  codeql:
+    name: Seguridad estática
+    uses: ./.github/workflows/codeql.yml
+    permissions:
+      contents: read
+      security-events: write
+      packages: read
+
+  web:
+    name: Web · auditoría, lint, typecheck, test, build y E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      # Solo para el build y las pruebas efímeras de CI; producción usa su propio secreto en Vercel.
+      SESSION_SECRET: ci-solo-pruebas-no-usar-en-produccion-0000
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Cache de Next.js
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('app/**', 'lib/**') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+
+      - name: Instalar dependencias (lockfile reproducible)
+        run: npm ci
+
+      - name: Auditoría de dependencias de producción (SCA)
+        run: npm run audit:prod
+
+      - name: Validar SBOM CycloneDX antes de fusionar
+        run: npm run sbom -- "$RUNNER_TEMP/sbom-web.cdx.json"
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      - name: Typecheck (TypeScript estricto)
+        run: npm run typecheck
+
+      - name: Pruebas unitarias con umbral de cobertura (Vitest)
+        run: npm run test:coverage
+
+      - name: Build de producción (Next.js)
+        run: npm run build
+
+      - name: Navegador de Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Pruebas E2E de humo (Playwright @smoke)
+        run: npm run test:smoke
+
+      - name: Resumen de pruebas
+        if: ${{ !cancelled() }}
+        run: node .github/scripts/resumen_pruebas.mjs
+
+      - name: Conservar reportes de pruebas
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: reportes-pruebas
+          path: |
+            test-results/
+            coverage/
+            playwright-report/
+          retention-days: 14
+
+  convenciones:
+    name: Convenciones de la PR
+    if: github.event_name == 'pull_request' && github.event.pull_request.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Verificar clave de Jira y Conventional Commits en el título o la rama
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BRANCH: ${{ github.head_ref }}
+        run: |
+          if printf '%s\n%s\n' "$PR_TITLE" "$PR_BRANCH" | grep -Eq 'MORD-[0-9]+' \
+            || [ "$PR_BRANCH" = "test" ]; then
+            echo "Convención de PR válida: $PR_TITLE ($PR_BRANCH)"
+          else
+            echo "::error::El título o la rama debe incluir la clave de Jira (por ejemplo «feat(MORD-24): …» o la rama MORD-24-denuncia)."
+            exit 1
+          fi
+          if ! printf '%s\n' "$PR_TITLE" | grep -Eq '^(feat|fix|test|ci|docs|refactor|perf|build|chore|style|release)(\(MORD-[0-9]+\))?!?: .+|^MORD-[0-9]+'; then
+            echo "::warning::Se recomienda Conventional Commits: tipo(MORD-n): descripción"
+          fi
+
+  archivos:
+    name: Archivos grandes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      MAX_KB: 2048
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Rechazar archivos de más de 2 MB en la PR
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          status=0
+          while IFS= read -r -d '' file; do
+            [ -f "$file" ] || continue
+            size_kb=$(( $(stat -c %s "$file") / 1024 ))
+            if [ "$size_kb" -gt "$MAX_KB" ]; then
+              echo "::error file=$file::$file pesa ${size_kb} KB (máximo ${MAX_KB} KB)."
+              status=1
+            fi
+          done < <(git diff -z --name-only --diff-filter=AM "$BASE_SHA" HEAD)
+          exit $status
+
+  # Job puerta: es el único check que debe marcarse como obligatorio en la protección
+  # de main. Siempre se ejecuta y falla si algún job falló o se canceló. Solo admite
+  # omisiones justificadas por el tipo de evento; Gitleaks, CodeQL y Web nunca se omiten.
+  ci:
+    name: CI
+    needs: [web, convenciones, archivos, codeql, gitleaks]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Probar el contrato del job puerta y la política de CodeQL
+        run: python3 -m unittest discover -s .github/scripts/tests -v
+
+      - name: Verificar resultado de los jobs
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+          EVENT_NAME: ${{ github.event_name }}
+          AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
+        run: python3 .github/scripts/check_ci.py

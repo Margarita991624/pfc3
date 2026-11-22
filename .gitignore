@@ -12,3 +12,4 @@ next-env.d.ts
 playwright-report/
 blob-report/
 sbom*.cdx.json
+__pycache__/
