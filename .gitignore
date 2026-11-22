@@ -9,3 +9,7 @@ test-results/
 *.tsbuildinfo
 next-env.d.ts
 .vercel
+playwright-report/
+blob-report/
+sbom*.cdx.json
+__pycache__/
