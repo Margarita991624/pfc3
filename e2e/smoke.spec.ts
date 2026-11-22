@@ -155,6 +155,28 @@ test.describe("@smoke MercaOrden", () => {
     await expect(page.getByText(/EN REVISIÓN/)).toBeVisible();
   });
 
+  test("MORD-35: el admin responde una hoja del Libro de Reclamaciones con el formato formal", async ({ page, request }) => {
+    const r = await request.post("/api/reclamos", {
+      data: { tipo: "Queja", nombres: "Pedro Salas", documento: "12312312", domicilio: "Jr. Lima 456", email: "pedro@example.com", bienTipo: "Servicio",
+        descripcionBien: "Atención en ventanilla", detalle: "Me atendieron de mala manera en la oficina.", pedido: "Una disculpa y mejor trato.", acepta: true },
+    });
+    expect(r.status()).toBe(201);
+    const { codigo } = await r.json();
+    await page.goto("/admin");
+    await page.getByLabel("Contraseña").fill("e2e-admin-pruebas");
+    await page.getByRole("button", { name: "Ingresar" }).click();
+    await page.getByRole("tab", { name: /Libro de Reclamaciones/ }).click();
+    await page.getByRole("row", { name: new RegExp(codigo) }).getByRole("button", { name: "Responder" }).click();
+    const caja = page.getByLabel(/Respuesta formal para Pedro Salas/);
+    await expect(caja).toHaveValue(new RegExp(codigo));
+    await page.getByRole("button", { name: "Enviar respuesta al consumidor" }).click();
+    await expect(page.getByText(/Completa o borra las partes entre corchetes/)).toBeVisible();
+    await caja.fill((await caja.inputValue()).replace(/\[[^\]]*\]/g, "se habló con el personal y se reforzó la capacitación en atención"));
+    await page.getByRole("button", { name: "Enviar respuesta al consumidor" }).click();
+    await expect(page.getByText(new RegExp(`Respuesta a la hoja ${codigo} registrada`))).toBeVisible();
+    await expect(page.getByRole("row", { name: new RegExp(codigo) }).getByText("Respondido")).toBeVisible();
+  });
+
   test("seguridad · /admin protegido y cabeceras de seguridad presentes", async ({ request }) => {
     expect((await request.get("/api/comerciantes")).status()).toBe(401);
     const res = await request.get("/");

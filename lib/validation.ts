@@ -57,6 +57,11 @@ export const reporteSchema = z.object({
   descripcion: z.string().trim().min(10, "Cuéntanos qué viste (al menos 10 caracteres)").max(2000),
 });
 
+export const respuestaReclamoSchema = z.object({
+  respuesta: z.string().trim().min(60, "La respuesta es muy corta: explica la evaluación y la solución").max(5000)
+    .refine((t) => !/\[[^\]]*\]/.test(t), "Completa o borra las partes entre corchetes [ ] antes de enviar"),
+});
+
 /** MORD-35: hoja del Libro de Reclamaciones virtual. */
 const opcional = (max: number) => z.string().trim().max(max).optional().transform((v) => (v ? v : null));
 export const reclamoSchema = z.object({

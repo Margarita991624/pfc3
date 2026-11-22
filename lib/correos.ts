@@ -177,3 +177,14 @@ export function correoLicencia(c: Comerciante, urlBase: string): Correo {
     ], { texto: "Ver mi solicitud", url: `${urlBase}/comerciantes/estado` }),
   };
 }
+
+/** MORD-35: respuesta formal al consumidor (texto redactado por la administración). */
+export function correoRespuestaReclamo(r: import("./types").Reclamo): Correo {
+  const cuerpo = escaparHtml(r.respuesta ?? "").split(/\n{2,}/).map((p) => p.replace(/\n/g, "<br>"));
+  return {
+    para: r.email,
+    asunto: `Respuesta a tu ${r.tipo.toLowerCase()} N.º ${r.codigo} – Libro de Reclamaciones`,
+    texto: plano(`Respuesta a tu ${r.tipo.toLowerCase()} N.º ${r.codigo}`, [r.respuesta ?? ""]),
+    html: plantilla(`Respuesta a tu ${escaparHtml(r.tipo.toLowerCase())} N.º ${escaparHtml(r.codigo)}`, "#10241a", cuerpo),
+  };
+}

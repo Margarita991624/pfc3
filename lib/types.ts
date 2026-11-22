@@ -70,6 +70,9 @@ export interface Reclamo {
   detalle: string;
   pedido: string;
   creadoEn: string;
+  estado?: "Recibido" | "Respondido";
+  respuesta?: string | null;
+  respondidoEn?: string | null;
 }
 
 /** Puerto de persistencia: Supabase en producción, memoria en las pruebas. */
@@ -87,6 +90,9 @@ export interface Repositorio {
   buscarDenunciaPorCodigo(codigo: string): Promise<Denuncia | null>;
   listarDenuncias(): Promise<Denuncia[]>;
   crearReclamo(r: Omit<Reclamo, "id" | "creadoEn">): Promise<Reclamo>;
+  listarReclamos(): Promise<Reclamo[]>;
+  buscarReclamo(id: string): Promise<Reclamo | null>;
+  responderReclamo(id: string, respuesta: string): Promise<Reclamo | null>;
   liberarPuesto(puestoId: string): Promise<void>;
   crearReporte(r: Omit<Reporte, "id" | "creadoEn" | "estado">): Promise<Reporte>;
   listarReportes(): Promise<Reporte[]>;

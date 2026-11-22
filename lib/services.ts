@@ -8,6 +8,7 @@ import {
   cambioEstadoDenunciaSchema,
   consultaSolicitudSchema,
   reclamoSchema,
+  respuestaReclamoSchema,
   cambioLicenciaSchema,
   reporteSchema,
   denunciaSchema,
@@ -224,4 +225,40 @@ export async function atenderReporte(repo: Repositorio, id: string) {
   if (r.estado === "Atendido") throw new ErrorDominio("El reporte ya fue atendido", 409);
   await repo.marcarReporteAtendido(id);
   return { id, estado: "Atendido" as const };
+}
+
+/** MORD-35: días hábiles (lunes a viernes) transcurridos desde el día siguiente al registro. */
+export function diasHabilesTranscurridos(desde: Date, hasta: Date): number {
+  let n = 0;
+  const d = new Date(Date.UTC(desde.getUTCFullYear(), desde.getUTCMonth(), desde.getUTCDate()));
+  const fin = Date.UTC(hasta.getUTCFullYear(), hasta.getUTCMonth(), hasta.getUTCDate());
+  while (true) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    if (d.getTime() > fin) break;
+    const w = d.getUTCDay();
+    if (w !== 0 && w !== 6) n++;
+  }
+  return n;
+}
+
+export const PLAZO_RECLAMO_DIAS_HABILES = 15;
+
+/** MORD-35: bandeja del Libro de Reclamaciones con el plazo legal restante. */
+export async function listarReclamosAdmin(repo: Repositorio, hoy = new Date()) {
+  return (await repo.listarReclamos()).map((r) => {
+    const usados = diasHabilesTranscurridos(new Date(r.creadoEn), hoy);
+    return { ...r, estado: r.estado ?? "Recibido", diasRestantes: PLAZO_RECLAMO_DIAS_HABILES - usados };
+  });
+}
+
+/** MORD-35: registrar la respuesta (una sola vez) para enviarla al consumidor. */
+export async function responderReclamo(repo: Repositorio, id: string, input: unknown) {
+  const parsed = respuestaReclamoSchema.safeParse(input);
+  if (!parsed.success) throw new ErrorDominio(primerError(parsed.error), 422);
+  const r = await repo.buscarReclamo(id);
+  if (!r) throw new ErrorDominio("Hoja de reclamación no encontrada", 404);
+  if (r.estado === "Respondido") throw new ErrorDominio("Esta hoja ya fue respondida", 409);
+  const actualizado = await repo.responderReclamo(id, parsed.data.respuesta);
+  if (!actualizado) throw new ErrorDominio("Esta hoja ya fue respondida", 409);
+  return actualizado;
 }
